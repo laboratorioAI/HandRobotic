@@ -5,17 +5,17 @@ This project aims to control a robotic arm using electromyographic (EMG) signals
 The robotic arm responds to a series of gestures made with the Myo Armband. The gestures are detected and interpreted to perform the following actions:
 
 1. Wave In (Play/Pause):
-- The Wave In gesture (moving the hand inward) activates or pauses the robotic arm's movement.
-- If the arm is already moving, the gesture pauses the robot.
+    - The Wave In gesture (moving the hand inward) activates or pauses the robotic arm's movement.
+    - If the arm is already moving, the gesture pauses the robot.
 
 2. Wave Out (Stop Execution):
-- The Wave Out gesture (moving the hand outward) stops the robotic arm's execution and pauses it.
+    - The Wave Out gesture (moving the hand outward) stops the robotic arm's execution and pauses it.
 
 3. Fist (Close Gripper):
-- The Fist gesture (making a fist) closes the robotic arm's gripper.
+    - The Fist gesture (making a fist) closes the robotic arm's gripper.
 
 4. Open (Open Gripper):
-- The Open gesture (opening the hand) opens the robotic arm's gripper.
+    - The Open gesture (opening the hand) opens the robotic arm's gripper.
 
 5. Pinch (Initial Position):
 The Pinch gesture places the robotic arm in its initial position, serving as a reference point.
@@ -54,8 +54,8 @@ Before running the project, make sure you have the following installed:
 
 Additionally, the following MATLAB toolboxes must be installed:
 
-Navigation Toolbox
-Robotics System Toolbox
-UAV Toolbox
-Parallel Computing Toolbox
-Instrumentation and Control Toolbox
+- Navigation Toolbox
+- Robotics System Toolbox
+- UAV Toolbox
+- Parallel Computing Toolbox
+- Instrumentation and Control Toolbox
