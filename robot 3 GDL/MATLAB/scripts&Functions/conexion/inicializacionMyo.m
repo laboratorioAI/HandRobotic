@@ -14,7 +14,7 @@ if isConnectedMyo==1
     axis off;
     set(handles.conectarMyoButton,'Enable','off')
     set(handles.mensajesTextBox,'String','MYO CONECTADO!')
-    set(handles.usuarioButton,'Enable','on')
+    % set(handles.usuarioButton,'Enable','on')
 
     
     % iniciar a dibujar!

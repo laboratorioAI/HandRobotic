@@ -48,5 +48,3 @@ if isConnectedMyo
     datosUsuario.orientacion = initOrientacion(Ro);
     
 end
-
-

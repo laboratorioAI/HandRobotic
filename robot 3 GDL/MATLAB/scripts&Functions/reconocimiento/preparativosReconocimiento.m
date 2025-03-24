@@ -106,6 +106,3 @@ start(timerEnvio)
 
 start(timerReconocimiento)
 myoObject.myoData.clearLogs();
-
-
-

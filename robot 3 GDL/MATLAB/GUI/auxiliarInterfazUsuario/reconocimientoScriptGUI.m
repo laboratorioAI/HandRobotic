@@ -68,4 +68,3 @@ while ~flags.detener % mientras no se dé la orden de "detener" el sistema contin
     
     
 end
-

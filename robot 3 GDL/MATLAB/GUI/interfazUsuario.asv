@@ -1,3 +1,5 @@
+%% COSAS DEL GUI!
+% No prestar atención, archivo creado para facilitar código
 function varargout = interfazUsuario(varargin)
     gui_Singleton = 1;
     gui_State = struct('gui_Name',       'interfazUsuario.fig', ...
@@ -97,9 +99,16 @@ function mostrarResultadosButton_Callback(~, ~, handles)
     resultadosGUI = resultados;
     uiwait(resultadosGUI);
     drawnow
-
 function iniciarButton_Callback(hObject, ~, handles)
     global flags datosUsuario EV3 algoritmoSeleccionado;
+
+    if flags.reconocimientoActivo
+        % Si ya hay un reconocimiento activo, desactivar la acción
+        set(handles.mensajesTextBox, 'String', 'El reconocimiento ya está en curso. Finalícelo antes de iniciar otro.');
+        beep;
+        return;
+    end
+
     try
         flags.iniciado;
     catch
@@ -125,7 +134,6 @@ function iniciarButton_Callback(hObject, ~, handles)
                 set(handles.tituloGestoText, 'String', 'Reconociendo');
                 set(handles.robotRadio, 'Enable', 'on');
                 set(handles.robotRadio, 'Value', 1);
-
                 flags.dibujarEMG = 0; % Para dibujar gesto reconocido
                 set(handles.mostrarResultadosButton, 'Enable', 'on');
                 flags.moverIMULego = 1;
@@ -156,6 +164,8 @@ function iniciarButton_Callback(hObject, ~, handles)
             beep;
     end
     drawnow;
+end
+
 
 function verUsuarioButton_Callback(~, ~, handles)
     if get(handles.radiobutton27, 'Value') == 1 % El radio button KNN está seleccionado
@@ -193,10 +203,11 @@ function tiempoBUtton_Callback(hObject, eventdata, handles)
 % Para KNN (radio button 27)
 function radiobutton27_Callback(hObject, eventdata, handles)
     global algoritmoSeleccionado flags;
+    
     if flags.reconocimientoActivo
-        % No permitir cambio de algoritmo mientras el reconocimiento está activo
-        set(hObject, 'Value', 0); % Desactiva el radio button
-        set(handles.radiobutton28, 'Value', 1); % Mantiene seleccionado CNN
+        % Si ya hay un reconocimiento activo, no permitir cambiar el algoritmo
+        set(hObject, 'Value', 0); % Desactivar KNN
+        set(handles.radiobutton28, 'Value', 1); % Mantener CNN seleccionado
         set(handles.mensajesTextBox, 'String', 'Finalice el reconocimiento actual antes de cambiar a KNN.');
         beep;
         return;
@@ -204,24 +215,23 @@ function radiobutton27_Callback(hObject, eventdata, handles)
     
     if get(hObject, 'Value') == 1 % Si se selecciona KNN
         algoritmoSeleccionado = 1; % Asignar 1 para KNN
-        habilitarPanelUsuario(handles, true); % Habilitar el panel de usuario
-        set(handles.iniciarButton, 'Enable', 'off'); % Desactiva el botón "Iniciar"
-        
-        % Llamar a la función para restablecer datosUsuario para el nuevo algoritmo
-        restablecerDatosUsuarioParaNuevoAlgoritmo();
+        set(handles.iniciarButton, 'Enable', 'off'); % Desactivar el botón "Iniciar"
+        habilitarPanelUsuario(handles, true); % Habilitar panel de usuario
         disp('Algoritmo KNN seleccionado. Se requiere seleccionar un usuario para activar Iniciar.');
     else
         habilitarPanelUsuario(handles, false); % Deshabilitar panel de usuario
     end
 
 
+
+% Para CNN (radio button 28)
 function radiobutton28_Callback(hObject, eventdata, handles)
     global algoritmoSeleccionado flags;
     
     if flags.reconocimientoActivo
-        % No permitir cambio de algoritmo si hay un reconocimiento activo
-        set(hObject, 'Value', 0); % Desactiva el radio button
-        set(handles.radiobutton27, 'Value', 1); % Mantiene seleccionado KNN
+        % Si ya hay un reconocimiento activo, no permitir cambiar el algoritmo
+        set(hObject, 'Value', 0); % Desactivar CNN
+        set(handles.radiobutton27, 'Value', 1); % Mantener KNN seleccionado
         set(handles.mensajesTextBox, 'String', 'Finalice el reconocimiento actual antes de cambiar a CNN.');
         beep;
         return;
@@ -230,23 +240,12 @@ function radiobutton28_Callback(hObject, eventdata, handles)
     if get(hObject, 'Value') == 1 % Si se selecciona CNN
         algoritmoSeleccionado = 2; % Asignar 2 para CNN
         habilitarPanelUsuario(handles, false); % Deshabilitar panel de usuario
-        set(handles.iniciarButton, 'Enable', 'on'); % Activa directamente el botón "Iniciar"
-        % Activar reconocimiento CNN
-        flags.reconocer = true;
-        flags.reconocimientoActivo = true;
-        set(handles.mensajesTextBox, 'String', 'Ejecutando reconocimiento CNN en tiempo real...');
-        disp('Algoritmo CNN seleccionado. Ejecutando reconocimiento en tiempo real.');
-    
-        % Ejecutar el proceso de reconocimiento CNN en tiempo real
-        ejecutarCNNTiempoReal(handles);
-    
-        % Marcar el fin del reconocimiento
-        flags.reconocer = false;
-        flags.reconocimientoActivo = false;
-
+        set(handles.iniciarButton, 'Enable', 'on'); % Activar el botón "Iniciar"
+        disp('Algoritmo CNN seleccionado. Botón Iniciar activado.');
     else
         set(handles.iniciarButton, 'Enable', 'off'); % Deshabilitar el botón "Iniciar"
     end
+
 
 
 
@@ -273,77 +272,22 @@ function habilitarPanelUsuario(handles, habilitar)
         disp('Panel de usuario deshabilitado.');
     end
 
-
-% Solo restablecer campos específicos dentro de la estructura de datosUsuario
-% Funcion esta dando errores por o}lo que no se la utiliza
-function restablecerDatosUsuarioParaNuevoAlgoritmo()
-    global datosUsuario;
-    
-    % Limpiar solo los campos específicos que deben restablecerse para un nuevo algoritmo
-    % Por ejemplo, si 'gestoRespuesta' y otros campos son específicos del algoritmo
-    datosUsuario.gestoRespuesta = [];  % Limpiar el gestoRespuesta de cualquier valor previo
-    datosUsuario.tiempoClasificacionVector = []; % Limpiar el tiempoClasificacionVector si es necesario
-    datosUsuario.tiempoOcioVector = []; % Limpiar el tiempoOcioVector si es necesario
-    datosUsuario.tiempoLoopTotalVector = []; % Limpiar el tiempoLoopTotalVector si es necesario
-    datosUsuario.gestoRespuestaVector = []; % Limpiar el gestoRespuestaVector si es necesario
-    
-    % No eliminar los datos de usuario, solo los campos que deben reiniciarse
-
-function ejecutarCNNTiempoReal(handles)
-    % Función para ejecutar el modelo CNN-LSTM en tiempo real integrado con la GUI
-    global flags myoObject; % Usar la conexión existente al Myo
-
-    %% Configuraciones
-    window_size = 300;
-    stride = 30;
-    period = 1/200 * 30; % Ajustar periodo para Myo
-    
-    % Añadir dependencias del modelo
-    addpath(genpath('MyoMex-master')); % Asegúrate de que el path sea correcto
-    
-    % Cargar el modelo CNN-LSTM
-    try
-        model = Model_spec_CNN_LSTM(); % Instancia el modelo
-        set(handles.mensajesTextBox, 'String', 'Modelo CNN-LSTM cargado correctamente.');
-        disp('Modelo CNN-LSTM cargado correctamente.');
-    catch ME
-        set(handles.mensajesTextBox, 'String', 'Error al cargar el modelo CNN-LSTM.');
-        disp(['Error al cargar el modelo: ', ME.message]);
-        return;
+function verificarEstadoIniciarButton(handles)
+    % Verificar si se cumplen las condiciones para activar el iniciarButton
+    if get(handles.radiobutton27, 'Value') == 1 % Caso KNN
+        % En KNN, activar solo si se seleccionó un usuario
+        if get(handles.usuarioButton, 'Enable') == 1 % Verificar si usuario está habilitado
+            set(handles.iniciarButton, 'Enable', 'on'); % Activar iniciarButton
+        else
+            set(handles.iniciarButton, 'Enable', 'off'); % Deshabilitar iniciarButton
+        end
+    elseif get(handles.radiobutton28, 'Value') == 1 % Caso CNN
+        % En CNN, activar directamente
+        set(handles.iniciarButton, 'Enable', 'on');
+    else
+        % Si no hay algoritmo seleccionado, deshabilitar iniciarButton
+        set(handles.iniciarButton, 'Enable', 'off');
     end
 
-    %% Loop de Reconocimiento
-
-    disp('Iniciando reconocimiento en tiempo real...');
-    while flags.reconocer
-        t = tic;
-        try
-        % Usar el método load_EMG_window de la clase Myo para cargar datos EMG
-        emg_window = myo.load_EMG_window(window_size); % Ventana de datos EMG
-        disp(emg_window)
-        
-        % Clasificar los datos EMG
-        class_pred = model.classify(emg_window);
-
-        % Mostrar resultados en consola
-        fprintf(sprintf("Tiempo restante: %.2f, Predicción: %s\n", period - toc(t), class_pred(end)));
-
-        catch ME
-            % Manejo de errores durante el reconocimiento
-            set(handles.mensajesTextBox, 'String', 'Error durante el reconocimiento.');
-            disp(['Error en el loop de reconocimiento: ', ME.message]);
-            break;
-        end
-
-        % Sincronización del loop
-        rem = period - toc(t);
-        if rem > 0
-            pause(rem);
-        end
-    end
-
-    % Final del reconocimiento
-    set(handles.mensajesTextBox, 'String', 'Reconocimiento en tiempo real finalizado.');
-    disp('Reconocimiento en tiempo real finalizado.');
-
+    
 
