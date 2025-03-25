@@ -13,42 +13,54 @@ classdef Myo < handle
             % El constructor intenta conectar el Myo
             disp('Intentando conectar al Myo...');
             obj.connectMyo();  % Intenta conectar al Myo
+            if ~obj.isConnected 
+                obj.connectMyo();
+            end
+
+            if ~obj.isConnected 
+                warning("No se pudo conectar al Myo.");
+            end
+        end
+
+        %% Resetear los datos del buffer
+        function resetBuffer(obj)
+            obj.myoObject.myoData.clearLogs();
         end
 
         %% Conectar Myo
         function connectMyo(obj)
-            % Aquí debes colocar el código que establece la conexión con el Myo
-            % Para esta demostración se simula que la conexión fue exitosa
-            disp('Conectando al Myo...');
-            obj.isConnected = true;
-            disp('Conexión con el Myo exitosa!');
-            
-            % Este es un objeto simulado para fines de demostración
-            obj.myoObject = struct();
-            obj.myoObject.myoData = struct('emg_log', rand(200,8), 'rot', rand(1,3)); % Datos de ejemplo para EMG y rotación
-            disp('Datos de EMG y rotación simulados en myoObject.');
-        end
+            obj.isConnected = true; % Bandera que indica estado de conexión
 
-        %% Leer EMG
-        function emg = readEmg(obj)
-            % Retorna las señales EMG
-            % disp('Intentando leer datos EMG...');
-            if obj.isConnected
-                emg = obj.myoObject.myoData.emg_log; % Recupera los datos EMG simulados
-                % disp('Datos EMG leídos con éxito.');
-                obj.myoObject.myoData.emg_log = []; % Limpia los datos después de leerlos
-            else
-                error('Myo no está conectado.');
+            try
+                % Revisando si existe conexión existente
+                obj.isConnected = obj.myoObject.myoData.isStreaming;
+                
+                % Si no se está transmitiendo, reiniciar conexión
+                if isnan(obj.myoObject.myoData.rateEMG)
+                    obj.terminateMyo();
+                    obj.isConnected = false;
+                end
+            catch
+                % En caso de que no haya conexión detectada.
+                try
+                    % Nueva conexión
+                    obj.myoObject = MyoMex();
+                    obj.myoObject.myoData.startStreaming();
+                    disp('Conexión con MYO exitosa.');
+                catch
+                    % No se pudo conectar
+                    obj.isConnected = false;
+                    warning('No se pudo conectar al dispositivo Myo.');
+                end
             end
         end
 
-        %% Obtener datos de rotación
-        function rot = readRotation(obj)
-            % Devuelve la orientación (rotación) del Myo
-            disp('Intentando leer datos de rotación...');
+        %% Leer datos EMG
+        function emg = readEmg(obj)
+            % Retorna las señales EMG
             if obj.isConnected
-                rot = obj.myoObject.myoData.rot;
-                disp('Datos de rotación leídos con éxito.');
+                emg = obj.myoObject.myoData.emg_log; % Recupera los datos EMG
+                obj.myoObject.myoData.clearLogs(); % Limpia los datos después de leerlos
             else
                 error('Myo no está conectado.');
             end
@@ -62,48 +74,54 @@ classdef Myo < handle
             % Outputs:
             %   - data: Matriz de tamaño [window_size x 8] con los datos EMG.
 
-            
-            
             arguments
                 obj
                 window_size (1, 1) double {mustBePositive, mustBeInteger}
             end
-        
-            %disp(['Intentando cargar ventana de datos EMG con tamaño: ', num2str(window_size)]);
+
             % Inicializar ventana persistente para almacenar los datos
             persistent emg;
             if isempty(emg)
                 emg = zeros(window_size, 8); % Matriz inicial llena de ceros
-                %disp('Ventana EMG inicializada.');
             end
-            
+
             % Obtener nuevos datos utilizando el método `readEmg`
             newData = obj.readEmg();
-            %disp('Datos EMG obtenidos y listos para procesar.');
 
             % Calcular el tamaño del salto (stride)
             stride = size(newData, 1);
             if stride > window_size
                 stride = window_size; % Limitar el tamaño del stride al de la ventana
             end
-            % disp(['Tamaño del stride calculado: ', num2str(stride)]);
 
             % Actualizar la ventana con los nuevos datos
             emg = circshift(emg, -stride, 1); % Mueve los datos antiguos hacia arriba
             emg(end - stride + 1:end, :) = newData(end - stride + 1:end, :); % Añade los nuevos datos al final
-            % disp('Ventana EMG actualizada con nuevos datos.');
 
             % Devolver la ventana actualizada
             data = emg;
-            % disp('Datos de la ventana EMG retornados.');
         end
 
         %% Terminar la conexión con Myo
         function terminateMyo(obj)
-            % Simula la desconexión
-            disp('Terminando la conexión con Myo...');
             obj.isConnected = false;
-            disp('Conexión con Myo terminada.');
+
+            try
+                % Detener streaming y eliminar objeto Myo
+                obj.myoObject.myoData.stopStreaming();
+                pause(0.1);  % Dar un pequeño tiempo para la finalización
+                obj.myoObject.delete;
+                obj.isConnected = false;
+            catch me
+                disp(me.message);
+                try
+                    % Intentar detener el streaming si hubo un error
+                    obj.myoObject.myoData.stopStreaming();
+                    obj.myoObject.delete;
+                catch me
+                    disp(me.message);
+                end
+            end
         end
     end
 end

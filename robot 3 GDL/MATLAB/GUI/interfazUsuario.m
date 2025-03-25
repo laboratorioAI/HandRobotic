@@ -146,15 +146,41 @@ function iniciarButton_Callback(hObject, ~, handles)
             disp('Iniciando reconocimiento con CNN...');
             if ~flags.iniciado
                 flags.reconocimientoActivo = true; % Marca el inicio del reconocimiento
-                % Implementar lógica específica de CNN...
-            else
+                set(hObject, 'String', 'Pausar'); % Cambiar texto a "Pausar"
+                flags.iniciado = true;
+                flags.reconocer = true;
+
+                % Configuración específica de CNN
+                set(handles.tituloGestoText, 'String', 'Reconociendo con CNN');
+                ejecutarCNNTiempoReal(handles); % Inicia el reconocimiento en tiempo real
+            elseif flags.reconocer % Si está activo, pausar y finalizar el reconocimiento
+                disp('Pausando el reconocimiento con CNN...');
+                flags.reconocer = false; % Finalizar el reconocimiento actual
                 flags.iniciado = false;
-                flags.reconocimientoActivo = false; % Marca el fin del reconocimiento
+                flags.reconocimientoActivo = false;
+                set(hObject, 'String', 'Iniciar'); % Cambiar el texto a "Iniciar"
+                set(handles.tituloGestoText, 'String', 'Reconocimiento finalizado.');
+
+            else % Si está pausado, reiniciar desde cero
+                disp('Reiniciando reconocimiento con CNN desde el principio...');
+                flags.reconocer = true;
+                flags.iniciado = true;
+                flags.reconocimientoActivo = true;
+                set(hObject, 'String', 'Pausar'); % Cambiar el texto a "Pausar"
+                set(handles.tituloGestoText, 'String', 'Reconociendo con CNN');
+                ejecutarCNNTiempoReal(handles); % Reinicia el reconocimiento
             end
         otherwise
             set(handles.mensajesTextBox, 'String', 'Error: Algoritmo desconocido.');
             beep;
     end
+
+    % Si el reconocimiento termina y cambia de algoritmo, restaurar el texto del botón
+    if ~flags.reconocimientoActivo
+        set(hObject, 'String', 'Iniciar'); % Restaurar texto a "Iniciar"
+        disp('Reconocimiento finalizado. Botón restaurado a "Iniciar".');
+    end
+    
     drawnow;
 
 function verUsuarioButton_Callback(~, ~, handles)
@@ -215,38 +241,27 @@ function radiobutton27_Callback(hObject, eventdata, handles)
     end
 
 
-function radiobutton28_Callback(hObject, eventdata, handles)
+    function radiobutton28_Callback(hObject, eventdata, handles)
     global algoritmoSeleccionado flags;
-    
+
     if flags.reconocimientoActivo
-        % No permitir cambio de algoritmo si hay un reconocimiento activo
-        set(hObject, 'Value', 0); % Desactiva el radio button
-        set(handles.radiobutton27, 'Value', 1); % Mantiene seleccionado KNN
+        set(hObject, 'Value', 0); % Desactivar el botón si hay reconocimiento activo
+        set(handles.radiobutton27, 'Value', 1); % Mantener KNN seleccionado
         set(handles.mensajesTextBox, 'String', 'Finalice el reconocimiento actual antes de cambiar a CNN.');
         beep;
         return;
     end
-    
-    if get(hObject, 'Value') == 1 % Si se selecciona CNN
-        algoritmoSeleccionado = 2; % Asignar 2 para CNN
-        habilitarPanelUsuario(handles, false); % Deshabilitar panel de usuario
-        set(handles.iniciarButton, 'Enable', 'on'); % Activa directamente el botón "Iniciar"
-        % Activar reconocimiento CNN
-        flags.reconocer = true;
-        flags.reconocimientoActivo = true;
-        set(handles.mensajesTextBox, 'String', 'Ejecutando reconocimiento CNN en tiempo real...');
-        disp('Algoritmo CNN seleccionado. Ejecutando reconocimiento en tiempo real.');
-    
-        % Ejecutar el proceso de reconocimiento CNN en tiempo real
-        ejecutarCNNTiempoReal(handles);
-    
-        % Marcar el fin del reconocimiento
-        flags.reconocer = false;
-        flags.reconocimientoActivo = false;
 
+    if get(hObject, 'Value') == 1 % Selecciona CNN
+        algoritmoSeleccionado = 2; % Asignar CNN como algoritmo seleccionado
+        habilitarPanelUsuario(handles, false); % Deshabilitar panel de usuario
+        set(handles.iniciarButton, 'Enable', 'on'); % Habilitar botón "Iniciar"
+        set(handles.iniciarButton, 'String', 'Iniciar'); % Restaurar texto a "Iniciar"
+        disp('Algoritmo CNN seleccionado.');
     else
-        set(handles.iniciarButton, 'Enable', 'off'); % Deshabilitar el botón "Iniciar"
+        set(handles.iniciarButton, 'Enable', 'off'); % Deshabilitar botón "Iniciar"
     end
+
 
 
 
@@ -290,60 +305,63 @@ function restablecerDatosUsuarioParaNuevoAlgoritmo()
     % No eliminar los datos de usuario, solo los campos que deben reiniciarse
 
 function ejecutarCNNTiempoReal(handles)
-    % Función para ejecutar el modelo CNN-LSTM en tiempo real integrado con la GUI
+    % Función para ejecutar el modelo CNN-LSTM en tiempo real y solo imprimir en consola
     global flags myoObject; % Usar la conexión existente al Myo
 
-    %% Configuraciones
-    window_size = 300;
-    stride = 30;
-    period = 1/200 * 30; % Ajustar periodo para Myo
-    
-    % Añadir dependencias del modelo
-    addpath(genpath('MyoMex-master')); % Asegúrate de que el path sea correcto
-    
-    % Cargar el modelo CNN-LSTM
+    % Configuración de parámetros
+    window_size = 300; % Tamaño de la ventana deslizante
+    stride = 30; % Estride para la ventana
+    addpath(genpath('MyoMex-master')); % Asegúrate de incluir las librerías necesarias
+
+    period = 1/200 * stride; % Período ajustado para sincronización
+
+    %% Inicialización
+    % Crear una instancia de la clase Myo
     try
-        model = Model_spec_CNN_LSTM(); % Instancia el modelo
-        set(handles.mensajesTextBox, 'String', 'Modelo CNN-LSTM cargado correctamente.');
-        disp('Modelo CNN-LSTM cargado correctamente.');
+        myo = Myo(); 
+        disp('Conexión inicial al Myo exitosa.');
     catch ME
-        set(handles.mensajesTextBox, 'String', 'Error al cargar el modelo CNN-LSTM.');
-        disp(['Error al cargar el modelo: ', ME.message]);
-        return;
+        error(['Error al conectar al dispositivo Myo: ', ME.message]);
     end
 
-    %% Loop de Reconocimiento
+    % Cargar el modelo CNN-LSTM
+    try
+        model = Model_spec_CNN_LSTM(); % Instancia del modelo
+        disp('Modelo CNN-LSTM cargado correctamente.');
+    catch ME
+        error(['Error al cargar el modelo CNN-LSTM: ', ME.message]);
+    end
 
+    %% Loop de reconocimiento
     disp('Iniciando reconocimiento en tiempo real...');
     while flags.reconocer
         t = tic;
         try
-        % Usar el método load_EMG_window de la clase Myo para cargar datos EMG
-        emg_window = myo.load_EMG_window(window_size); % Ventana de datos EMG
-        disp(emg_window)
-        
-        % Clasificar los datos EMG
-        class_pred = model.classify(emg_window);
+            % Verificar que `myo` sea una instancia válida de la clase `Myo`
+            if ~isa(myo, 'Myo')
+                error('El objeto `myo` no es una instancia válida de la clase `Myo`.');
+            end
 
-        % Mostrar resultados en consola
-        fprintf(sprintf("Tiempo restante: %.2f, Predicción: %s\n", period - toc(t), class_pred(end)));
+            % Usar el método load_EMG_window de la clase Myo para cargar datos EMG
+            emg_window = myo.load_EMG_window(window_size); % Ventana de datos EMG
+            
+            % Clasificar los datos EMG con el modelo CNN-LSTM
+            class_pred = model.classify(emg_window);
+
+            % Mostrar resultados en consola
+            fprintf(sprintf("Tiempo restante: %.2f, Predicción: %s\n", period - toc(t), class_pred(end)));
 
         catch ME
-            % Manejo de errores durante el reconocimiento
-            set(handles.mensajesTextBox, 'String', 'Error durante el reconocimiento.');
             disp(['Error en el loop de reconocimiento: ', ME.message]);
-            break;
+            break; % Salir del loop si hay un error crítico
         end
 
         % Sincronización del loop
-        rem = period - toc(t);
-        if rem > 0
-            pause(rem);
-        end
+        pause(max(0, period - toc(t))); % Esperar tiempo restante
     end
 
-    % Final del reconocimiento
-    set(handles.mensajesTextBox, 'String', 'Reconocimiento en tiempo real finalizado.');
     disp('Reconocimiento en tiempo real finalizado.');
+
+
 
 
