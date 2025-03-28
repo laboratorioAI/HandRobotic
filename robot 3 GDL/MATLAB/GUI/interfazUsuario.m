@@ -49,6 +49,7 @@ function conectarMyoButton_Callback(~, ~, handles)
         %% Lógica adicional para reconocimiento
         flags.detener = 0; % En 1 se detiene todo, 0 es no detener. seguir
         flags.reconocer = 0; % En 1 reconoce
+        flags.reconocerCNN = 0; % En 1 reconoce
         flags.dibujarEMG = 1; % 1 dibuja EMG IMU, 0 dibuja el gesto!
         reconocimientoScriptGUI;
     end
@@ -80,6 +81,7 @@ function mostrarResultadosButton_Callback(~, ~, handles)
     %% Deteniendo ejecución
     flags.iniciado = false;
     flags.reconocer = false;
+    flags.reconocerCNN = false;
     flags.moverIMULego = false;
     set ( handles.iniciarButton , 'String' , 'Reanudar');
 
@@ -100,6 +102,8 @@ function mostrarResultadosButton_Callback(~, ~, handles)
 
 function iniciarButton_Callback(hObject, ~, handles)
     global flags datosUsuario EV3 algoritmoSeleccionado;
+    disp('Contenido de datosUsuario al iniciar el reconocimiento:');
+    disp(datosUsuario);
     try
         flags.iniciado;
     catch
@@ -148,26 +152,32 @@ function iniciarButton_Callback(hObject, ~, handles)
                 flags.reconocimientoActivo = true; % Marca el inicio del reconocimiento
                 set(hObject, 'String', 'Pausar'); % Cambiar texto a "Pausar"
                 flags.iniciado = true;
-                flags.reconocer = true;
+                flags.reconocerCNN = true;
 
                 % Configuración específica de CNN
-                set(handles.tituloGestoText, 'String', 'Reconociendo con CNN');
+                %set(handles.tituloGestoText, 'String', 'Reconociendo con CNN');
                 ejecutarCNNTiempoReal(handles); % Inicia el reconocimiento en tiempo real
-            elseif flags.reconocer % Si está activo, pausar y finalizar el reconocimiento
+
+                % Verificar si el robot está moviéndose y detenerlo si es necesario
+                if flags.isRobotMoving
+                    pararMandoRobot(datosUsuario, EV3); % Detener robot si está en movimiento
+                end
+
+            elseif flags.reconocerCNN % Si está activo, pausar y finalizar el reconocimiento
                 disp('Pausando el reconocimiento con CNN...');
-                flags.reconocer = false; % Finalizar el reconocimiento actual
+                flags.reconocerCNN = false; % Finalizar el reconocimiento actual
                 flags.iniciado = false;
                 flags.reconocimientoActivo = false;
                 set(hObject, 'String', 'Iniciar'); % Cambiar el texto a "Iniciar"
-                set(handles.tituloGestoText, 'String', 'Reconocimiento finalizado.');
+                %set(handles.tituloGestoText, 'String', 'Reconocimiento finalizado.');
 
             else % Si está pausado, reiniciar desde cero
                 disp('Reiniciando reconocimiento con CNN desde el principio...');
-                flags.reconocer = true;
+                flags.reconocerCNN = true;
                 flags.iniciado = true;
                 flags.reconocimientoActivo = true;
                 set(hObject, 'String', 'Pausar'); % Cambiar el texto a "Pausar"
-                set(handles.tituloGestoText, 'String', 'Reconociendo con CNN');
+                %set(handles.tituloGestoText, 'String', 'Reconociendo con CNN');
                 ejecutarCNNTiempoReal(handles); % Reinicia el reconocimiento
             end
         otherwise
@@ -197,6 +207,7 @@ function mainCanvas_CloseRequestFcn(hObject, ~, ~)
     global flags isConnectedLego EV3
     flags.detener = true;
     flags.reconocer = false;
+    flags.reconocerCNN = false;
 
     delete(hObject);
 
@@ -303,65 +314,3 @@ function restablecerDatosUsuarioParaNuevoAlgoritmo()
     datosUsuario.gestoRespuestaVector = []; % Limpiar el gestoRespuestaVector si es necesario
     
     % No eliminar los datos de usuario, solo los campos que deben reiniciarse
-
-function ejecutarCNNTiempoReal(handles)
-    % Función para ejecutar el modelo CNN-LSTM en tiempo real y solo imprimir en consola
-    global flags myoObject; % Usar la conexión existente al Myo
-
-    % Configuración de parámetros
-    window_size = 300; % Tamaño de la ventana deslizante
-    stride = 30; % Estride para la ventana
-    addpath(genpath('MyoMex-master')); % Asegúrate de incluir las librerías necesarias
-
-    period = 1/200 * stride; % Período ajustado para sincronización
-
-    %% Inicialización
-    % Crear una instancia de la clase Myo
-    try
-        myo = Myo(); 
-        disp('Conexión inicial al Myo exitosa.');
-    catch ME
-        error(['Error al conectar al dispositivo Myo: ', ME.message]);
-    end
-
-    % Cargar el modelo CNN-LSTM
-    try
-        model = Model_spec_CNN_LSTM(); % Instancia del modelo
-        disp('Modelo CNN-LSTM cargado correctamente.');
-    catch ME
-        error(['Error al cargar el modelo CNN-LSTM: ', ME.message]);
-    end
-
-    %% Loop de reconocimiento
-    disp('Iniciando reconocimiento en tiempo real...');
-    while flags.reconocer
-        t = tic;
-        try
-            % Verificar que `myo` sea una instancia válida de la clase `Myo`
-            if ~isa(myo, 'Myo')
-                error('El objeto `myo` no es una instancia válida de la clase `Myo`.');
-            end
-
-            % Usar el método load_EMG_window de la clase Myo para cargar datos EMG
-            emg_window = myo.load_EMG_window(window_size); % Ventana de datos EMG
-            
-            % Clasificar los datos EMG con el modelo CNN-LSTM
-            class_pred = model.classify(emg_window);
-
-            % Mostrar resultados en consola
-            fprintf(sprintf("Tiempo restante: %.2f, Predicción: %s\n", period - toc(t), class_pred(end)));
-
-        catch ME
-            disp(['Error en el loop de reconocimiento: ', ME.message]);
-            break; % Salir del loop si hay un error crítico
-        end
-
-        % Sincronización del loop
-        pause(max(0, period - toc(t))); % Esperar tiempo restante
-    end
-
-    disp('Reconocimiento en tiempo real finalizado.');
-
-
-
-

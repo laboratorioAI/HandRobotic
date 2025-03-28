@@ -5,6 +5,26 @@ function [datosUsuario] =dibujarGUI(handles,datosUsuario,myoObject ,reconocimien
 
 global axesGesto flags YPRang
 
+% Verifica si los datos de usuario no están cargados
+if ~isfield(datosUsuario, 'usuarioValidoFlag') || datosUsuario.usuarioValidoFlag == 0
+    % Si no se selecciona un usuario, cargar un usuario por defecto
+    nombreUsuario = 'Mishel';  % Nombre de usuario predeterminado
+    disp(['Cargando usuario predeterminado: ' nombreUsuario]);
+
+    try
+        % Intentar cargar los datos del usuario predeterminado
+        archivo = load(['.\usersData\' nombreUsuario]);  % Ruta al archivo del usuario
+        datosUsuario = archivo.datosUsuario;  % Asumir que los datos están en 'datosUsuario' dentro del archivo
+        datosUsuario.usuarioValidoFlag = 1;  % Marcar el usuario como válido
+        disp('Usuario predeterminado cargado correctamente.');
+    catch
+        % Si ocurre un error al cargar, imprimir un mensaje de error
+        disp('Error al cargar el usuario predeterminado.');
+        return;  % Salir de la función si el usuario no se puede cargar
+    end
+end
+
+
 
 if flags.dibujarEMG
     
@@ -53,7 +73,6 @@ if flags.dibujarEMG
 else
     
     %% textos
-    
     if flags.muestrasPerdidas % no tiene nada el emg
         set ( handles.perdidasText , 'String' , ['NoData!' num2str( flags.kExeXSamPerdidasRecog ) ] ) ;
     end

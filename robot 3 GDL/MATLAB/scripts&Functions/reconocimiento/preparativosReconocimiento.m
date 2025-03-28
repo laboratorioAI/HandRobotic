@@ -14,6 +14,12 @@ probabilidadkNNUmbral=reconocimientoConfiguracion.probabilidadkNNUmbral;
 numRepeticiones=datosUsuario.numRepeticiones;
 database=datosUsuario.database;
 
+if isfield(datosUsuario, 'numRepeticiones')
+    numRepeticiones = datosUsuario.numRepeticiones;
+else
+    error('El campo numRepeticiones no existe en datosUsuario.');
+end
+
 
 %% Constantes
 freq=200; % Hz. Frecuencia por defecto

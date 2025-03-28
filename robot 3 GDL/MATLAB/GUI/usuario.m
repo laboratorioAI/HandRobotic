@@ -61,65 +61,68 @@ varargout{1} = handles.output;
 
 % --- Executes on button press in aceptarButton.
 function aceptarButton_Callback(hObject, eventdata, handles)
-% leyendo selección
-seleccionUsuario = get(get(handles.buttonGroup,'SelectedObject'),'Tag');
+    % leyendo selección
+    seleccionUsuario = get(get(handles.buttonGroup,'SelectedObject'),'Tag');
 
-% variable conteniendo datos del usuario
-global datosUsuario
+    % variable conteniendo datos del usuario
+    global datosUsuario
 
-switch seleccionUsuario
-    
-    case 'nuevoUsuario'
-        
-        % enviar a entrenamiento directamente
-        entrenamientoGUI=entrenamiento;
-        uiwait(entrenamientoGUI);
-        
-        if datosUsuario.entrenamientoValidoFlag==1 % si usuario es válido
-            datosUsuario.usuarioValidoFlag=1; % usuario es válido
-            datosUsuario=rmfield(datosUsuario,'entrenamientoValidoFlag'); % remuevo campos
-            datosUsuario=rmfield(datosUsuario,'numRepeticionesEntrenadas'); % remuevo campos
-            datosUsuario=rmfield(datosUsuario,'numGestosEntrenados'); % remuevo campos
-        end
-        
-        close(gcf)
-        
-    case 'existenteUsuario'
-        % mensaje para ingresar nombre de usuario
-        nameUser=inputdlg({'Nombre de usuario'},'Usuario',1,{'jonaZ'});
-        
-        % detectando información vónida
-        if ~isempty(nameUser)
+    switch seleccionUsuario
+        case 'nuevoUsuario'
+            % enviar a entrenamiento directamente
+            entrenamientoGUI = entrenamiento;
+            uiwait(entrenamientoGUI);
             
-            try
-                % detectar usuario vónido. Se detecta a travón de abrir archivo
-                % dataBase
-                emgVector=datosUsuario.emgVector;
-                orientacion = datosUsuario.orientacion ;
-                archivo = load(['.\usersData\' char(nameUser) ])  ;
-                datosUsuario = archivo.datosUsuario;
-                drawnow
-                datosUsuario.emgVector=emgVector;
-                datosUsuario.orientacion  = orientacion ;
-                disp('Usuario encontrado')
-                hObject.UserData.usuarioFlag=1;
-                hObject.UserData.nameUser=char(nameUser);
-                beep
-                datosUsuario.nombreUsuario=nameUser;
-                datosUsuario.usuarioValidoFlag=1; % usuario es válido                
-                
-                close(gcf)
-                
-            catch
-                uiwait(msgbox('Ingrese un nombre de usuario valido.','Mensaje','modal'));
+            if datosUsuario.entrenamientoValidoFlag == 1 % si usuario es válido
+                datosUsuario.usuarioValidoFlag = 1; % usuario es válido
+                % Limpiar campos innecesarios
+                datosUsuario = rmfield(datosUsuario, 'entrenamientoValidoFlag');
+                datosUsuario = rmfield(datosUsuario, 'numRepeticionesEntrenadas');
+                datosUsuario = rmfield(datosUsuario, 'numGestosEntrenados');
             end
             
-        end
-        
-    otherwise
-        disp('Problema')
-        
-end
+            close(gcf);
+            
+        case 'existenteUsuario'
+            % mensaje para ingresar nombre de usuario
+            nameUser = inputdlg({'Nombre de usuario'}, 'Usuario', 1, {'jonaZ'});
+            
+            % Si no se ingresa un nombre de usuario, cargar un predeterminado
+            if isempty(nameUser)
+                % Cargar un usuario predeterminado si no se ingresa uno
+                nameUser = {'Mishel'};  % Nombre de usuario predeterminado
+                disp('Cargando usuario predeterminado...');
+            end
+            
+            % detectando información válida
+            try
+                % Intentar cargar usuario desde la base de datos
+                emgVector = datosUsuario.emgVector;
+                orientacion = datosUsuario.orientacion;
+                archivo = load(['.\usersData\' char(nameUser)]);  % Cargar archivo de usuario
+                
+                datosUsuario = archivo.datosUsuario;
+                drawnow
+                datosUsuario.emgVector = emgVector;
+                datosUsuario.orientacion = orientacion;
+                disp('Usuario encontrado');
+                
+                % Marca el usuario como válido
+                datosUsuario.nombreUsuario = nameUser;
+                datosUsuario.usuarioValidoFlag = 1;  % Usuario es válido
+                
+                % Confirmar que el usuario es válido y cerrar la ventana
+                close(gcf);
+                
+            catch
+                % Si no se encuentra el usuario, mostrar mensaje de error
+                uiwait(msgbox('Ingrese un nombre de usuario válido o seleccione un usuario predeterminado.','Mensaje','modal'));
+            end
+            
+        otherwise
+            disp('Problema');
+    end
+
 
 
 

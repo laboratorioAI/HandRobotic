@@ -20,13 +20,21 @@ global emg flags myoObject datosUsuario reconocimientoConfiguracion isConnectedM
 while ~flags.detener % mientras no se dé la orden de "detener" el sistema continúa
     
     
-    %% Esperarando inicio del reconocimiento
-    while ~flags.reconocer && ~flags.detener % o bien se da orden de "detener" o "reconocer" si no, continúa esperando
+    %% Esperando inicio del reconocimiento
+    while ~flags.reconocer && ~flags.detener && ~flags.reconocerCNN % O bien se da orden de "detener" o "reconocer", si no, continúa esperando
         if isConnectedMyo
-            [datosUsuario]=dibujarGUI(handles,datosUsuario,myoObject ,reconocimientoConfiguracion ,emg);
+            % Aquí dibujamos la GUI mientras esperamos el inicio del reconocimiento
+            [datosUsuario] = dibujarGUI(handles, datosUsuario, myoObject, reconocimientoConfiguracion, emg);
+            
+            % Llamamos a dibujarGUI_CNN si se requiere la visualización de gestos en tiempo real
+            if flags.reconocerCNN
+                % Aquí colocas la función para graficar el gesto, si es necesario
+                gestoReconocido = 'Esperando...'; % Si es necesario definir algo mientras espera
+                dibujarGUI_CNN(handles, gestoReconocido, flags, myoObject);
+            end
         end
-        pause(0.05);
-        drawnow
+        pause(0.05); % Pausa para evitar que el loop consuma demasiados recursos
+        drawnow % Actualiza la interfaz gráfica
     end
     
     if flags.reconocer
