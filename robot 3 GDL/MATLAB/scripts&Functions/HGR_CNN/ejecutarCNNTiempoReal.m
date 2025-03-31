@@ -1,5 +1,4 @@
-function ejecutarCNNTiempoReal(handles)
-    % Función para ejecutar el modelo CNN-LSTM en tiempo real y graficar los gestos reconocidos
+function ejecutarCNNTiempoReal(handles, reconocimientoConfiguracion)
     global flags myoObject; % Usar la conexión existente al Myo
 
     % Configuración de parámetros
@@ -42,19 +41,25 @@ function ejecutarCNNTiempoReal(handles)
             % Clasificar los datos EMG con el modelo CNN-LSTM
             class_pred = model.classify(emg_window);
 
-            % Convertir la salida a un tipo adecuado
-            if isa(class_pred, 'categorical')
-                class_pred = string(class_pred);  % Convertir a cadena de caracteres
+            % Asegurarnos de que la predicción sea una cadena
+            class_pred_str = string(class_pred(end));  % Convertir a string si no lo es
+
+            % Mapea el gesto reconocido (categoría) a un índice numérico
+            gesture_map = containers.Map({'waveIn', 'waveOut', 'fist', 'open', 'pinch', 'noGesture'}, ...
+                                         [1, 2, 3, 4, 5, 6]);
+
+            % Convertir la predicción a un índice numérico
+            if isKey(gesture_map, strip(class_pred_str))  % Usamos strip para eliminar espacios innecesarios
+                gestoReconocido = gesture_map(strip(class_pred_str));  % Obtener índice numérico
+            else
+                gestoReconocido = 0;  % Si no hay coincidencia, devolver un valor por defecto (gesto desconocido)
             end
 
             % Mostrar resultados en consola
-            fprintf(sprintf("Tiempo restante: %.2f, Predicción: %s\n", period - toc(t), class_pred(end)));
-
-            % Extraer la última predicción y actualizar la GUI
-            gestoReconocido = class_pred(end); % Última predicción (gesto reconocido)
-
-            % Llamar a la función dibujarGUICNN para graficar el gesto
-            dibujarGUI_CNN(handles, gestoReconocido, flags, myoObject);
+            fprintf(sprintf("Tiempo restante: %.2f, Predicción: %s\n", period - toc(t), class_pred_str));
+            
+            % Llamar a la función dibujarGUI_CNN para graficar el gesto
+            dibujarGUI_CNN(handles, gestoReconocido, flags, myoObject, reconocimientoConfiguracion);
 
         catch ME
             disp(['Error en el loop de reconocimiento: ', ME.message]);

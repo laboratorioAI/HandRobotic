@@ -1,25 +1,33 @@
-function dibujarGUI_CNN(handles, gestoReconocido, flags, myoObject)
+function dibujarGUI_CNN(handles, gestoReconocido, flags, myoObject, reconocimientoConfiguracion)
     global axesGesto YPRang
 
     % Dibujar gesto en la interfaz de usuario
     % Dependiendo del gesto, mostrar la imagen y el nombre del gesto
     disp('Reconociendo gesto...');
-    disp(['Gesto reconocido: ', num2str(gestoReconocido)]);
+    
+    disp('Contenido de nameGestures:');
+    disp(reconocimientoConfiguracion.nameGestures);  % Muestra todos los gestos
+    disp(['Gesto reconocido: ', char(gestoReconocido)]);  % Imprime el nombre del gesto reconocido
 
-    % Verificar si el gesto es un número válido
-    if isnumeric(gestoReconocido) && gestoReconocido ~= 0
+    % Verificar si el gesto es un string (gesto reconocido)
+    if ischar(gestoReconocido) || isstring(gestoReconocido)
+        % Convertir gestoReconocido (string) a su índice en nameGestures
+        gestoReconocido = find(strcmp(gestoReconocido, reconocimientoConfiguracion.nameGestures));
+    end
+
+    disp(['Gesto reconocido (índice): ', num2str(gestoReconocido)]);
+
+    % Verificar si gestoReconocido es un número válido
+    if isnumeric(gestoReconocido) && gestoReconocido > 0 && gestoReconocido <= length(reconocimientoConfiguracion.nameGestures)
         % Obtener el nombre del gesto y verificar la imagen
-        % nombreGestoRespuesta = reconocimientoConfiguracion.nameGestures{gestoReconocido};
-        nombreGestoRespuesta=reconocimientoConfiguracion.nameGestures{6};
+        nombreGestoRespuesta = reconocimientoConfiguracion.nameGestures{gestoReconocido};
 
-        % Mostrar el nombre del gesto
         disp(['Nombre del gesto: ', nombreGestoRespuesta]);
 
         % Intentar cargar la imagen asociada al gesto
         try
             % Cargar la imagen del gesto
-            %imagenGesto = reconocimientoConfiguracion.imagenGesto.(nombreGestoRespuesta);
-            imagenGesto=reconocimientoConfiguracion.imagenGesto.(nombreGestoRespuesta);
+            imagenGesto = reconocimientoConfiguracion.imagenGesto.(nombreGestoRespuesta);
 
             % Verificar si la imagen está cargada correctamente
             if isempty(imagenGesto)
@@ -51,5 +59,18 @@ function dibujarGUI_CNN(handles, gestoReconocido, flags, myoObject)
         % Si no se ha reconocido un gesto, mostrar "Reconociendo..."
         set(handles.tituloGestoText, 'String', 'Reconociendo...');
         axesGesto.CData = zeros(size(axesGesto.CData)); % Imagen vacía
+    end
+
+     % Verificación del movimiento del robot
+    if flags.isRobotMoving
+        YPR = YPRang;  % Obtener los valores de orientación del robot (Yaw, Pitch, Roll)
+        handles.yawText.String = num2str(YPR(1));   % Mostrar el valor de yaw
+        handles.pitchText.String = num2str(-YPR(2)); % Mostrar el valor de pitch (invertido)
+        handles.rollText.String = num2str(YPR(3));  % Mostrar el valor de roll
+    else
+        % Si el robot no se mueve, vaciar los campos de orientación
+        handles.yawText.String = '';
+        handles.pitchText.String = '';
+        handles.rollText.String = '';
     end
 end

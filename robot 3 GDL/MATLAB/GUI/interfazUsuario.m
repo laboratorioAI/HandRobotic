@@ -26,6 +26,11 @@ function interfazUsuario_OpeningFcn(hObject, ~, handles, varargin)
 
     inicioInterfaz;
 
+    % Asegurarse de que 'flags.isRobotMoving' esté inicializado
+    if ~isfield(flags, 'isRobotMoving')
+        flags.isRobotMoving = false; % Inicializar en 'false' si no existe
+    end
+    
     % Inicializar la variable global
     flags.reconocimientoActivo = false; % Reconocimiento no activo al inicio
 
@@ -101,7 +106,7 @@ function mostrarResultadosButton_Callback(~, ~, handles)
     drawnow
 
 function iniciarButton_Callback(hObject, ~, handles)
-    global flags datosUsuario EV3 algoritmoSeleccionado;
+    global flags datosUsuario EV3 algoritmoSeleccionado reconocimientoConfiguracion;
     disp('Contenido de datosUsuario al iniciar el reconocimiento:');
     disp(datosUsuario);
     try
@@ -153,32 +158,29 @@ function iniciarButton_Callback(hObject, ~, handles)
                 set(hObject, 'String', 'Pausar'); % Cambiar texto a "Pausar"
                 flags.iniciado = true;
                 flags.reconocerCNN = true;
-
+    
                 % Configuración específica de CNN
-                %set(handles.tituloGestoText, 'String', 'Reconociendo con CNN');
-                ejecutarCNNTiempoReal(handles); % Inicia el reconocimiento en tiempo real
-
+                ejecutarCNNTiempoReal(handles, reconocimientoConfiguracion); % Inicia el reconocimiento en tiempo real
+    
                 % Verificar si el robot está moviéndose y detenerlo si es necesario
                 if flags.isRobotMoving
                     pararMandoRobot(datosUsuario, EV3); % Detener robot si está en movimiento
                 end
-
+    
             elseif flags.reconocerCNN % Si está activo, pausar y finalizar el reconocimiento
                 disp('Pausando el reconocimiento con CNN...');
                 flags.reconocerCNN = false; % Finalizar el reconocimiento actual
                 flags.iniciado = false;
                 flags.reconocimientoActivo = false;
                 set(hObject, 'String', 'Iniciar'); % Cambiar el texto a "Iniciar"
-                %set(handles.tituloGestoText, 'String', 'Reconocimiento finalizado.');
-
+                
             else % Si está pausado, reiniciar desde cero
                 disp('Reiniciando reconocimiento con CNN desde el principio...');
                 flags.reconocerCNN = true;
                 flags.iniciado = true;
                 flags.reconocimientoActivo = true;
                 set(hObject, 'String', 'Pausar'); % Cambiar el texto a "Pausar"
-                %set(handles.tituloGestoText, 'String', 'Reconociendo con CNN');
-                ejecutarCNNTiempoReal(handles); % Reinicia el reconocimiento
+                ejecutarCNNTiempoReal(handles, reconocimientoConfiguracion); % Reinicia el reconocimiento
             end
         otherwise
             set(handles.mensajesTextBox, 'String', 'Error: Algoritmo desconocido.');
