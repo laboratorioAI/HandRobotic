@@ -5,7 +5,7 @@ tiempoOcio = tic;
 
 %% Esperando datos EMG disponibles
 while  (flags.dibujarGestoReconocido) ... % cuando es importantísimo que dibuje!!
-        || ~flags.leidoMyo && flags.reconocer && ~flags.detener % si ya leyó valor, si hay q reconocer, si hay q acabar ejecución
+        || ~flags.leidoMyo && flags.reconocer && ~flags.detener  && flags.reconocerCNN % si ya leyó valor, si hay q reconocer, si hay q acabar ejecución
     drawnow
     %% gráficos GUI
     if isPrimerLazoEspera  % se ejecuta una vez
@@ -174,10 +174,11 @@ else
 end
 
 
+disp(['Valor de flags.moverIMULego if: ', mat2str(flags.moverIMULego)]);  % mat2str convierte el valor lógico en texto
 
 %% ROBOT
 if flags.moverIMULego
-
+    disp('Entrando en el bloque de moverIMULego') 
     gestos2MandoRobot(handles)
 
 %     angulosEnviarRobot; % se enviaba en el drawnow! Eran muchos...

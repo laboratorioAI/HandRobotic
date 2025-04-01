@@ -25,11 +25,6 @@ function interfazUsuario_OpeningFcn(hObject, ~, handles, varargin)
     guidata(hObject, handles);
 
     inicioInterfaz;
-
-    % Asegurarse de que 'flags.isRobotMoving' esté inicializado
-    if ~isfield(flags, 'isRobotMoving')
-        flags.isRobotMoving = false; % Inicializar en 'false' si no existe
-    end
     
     % Inicializar la variable global
     flags.reconocimientoActivo = false; % Reconocimiento no activo al inicio
@@ -56,6 +51,7 @@ function conectarMyoButton_Callback(~, ~, handles)
         flags.reconocer = 0; % En 1 reconoce
         flags.reconocerCNN = 0; % En 1 reconoce
         flags.dibujarEMG = 1; % 1 dibuja EMG IMU, 0 dibuja el gesto!
+        flags.dibujarEMGCNN = 1;
         reconocimientoScriptGUI;
     end
 
@@ -95,6 +91,7 @@ function mostrarResultadosButton_Callback(~, ~, handles)
     set(handles.pausaRadio,'Value',1);
 
     flags.dibujarEMG = 1; % Para dibujar gesto reconocido!
+    flags.dibujarEMGCN = 1;
     set(handles.mostrarResultadosButton,'Enable','off');
 
     global mensajeEspere hEspere
@@ -107,8 +104,6 @@ function mostrarResultadosButton_Callback(~, ~, handles)
 
 function iniciarButton_Callback(hObject, ~, handles)
     global flags datosUsuario EV3 algoritmoSeleccionado reconocimientoConfiguracion;
-    disp('Contenido de datosUsuario al iniciar el reconocimiento:');
-    disp(datosUsuario);
     try
         flags.iniciado;
     catch
@@ -138,11 +133,13 @@ function iniciarButton_Callback(hObject, ~, handles)
                 flags.dibujarEMG = 0; % Para dibujar gesto reconocido
                 set(handles.mostrarResultadosButton, 'Enable', 'on');
                 flags.moverIMULego = 1;
+                disp(['Estado de moverIMULego al iniciar reconocimiento: ', num2str(flags.moverIMULego)]); % Mostrar el estado al iniciar
             else
                 if flags.isRobotMoving
                     pararMandoRobot(datosUsuario, EV3);
                 end
                 flags.moverIMULego = 0;
+                disp(['Estado de moverIMULego al pausar reconocimiento: ', num2str(flags.moverIMULego)]); % Mostrar el estado al pausar
                 flags.iniciado = false;
                 set(hObject, 'String', 'Reanudar');
                 flags.reconocer = false;
@@ -155,32 +152,35 @@ function iniciarButton_Callback(hObject, ~, handles)
             disp('Iniciando reconocimiento con CNN...');
             if ~flags.iniciado
                 flags.reconocimientoActivo = true; % Marca el inicio del reconocimiento
+                % flags.moverIMULego = 1;
+                % disp(['Estado de moverIMULego al iniciar reconocimiento: ', num2str(flags.moverIMULego)]); % Mostrar el estado al iniciar                        
                 set(hObject, 'String', 'Pausar'); % Cambiar texto a "Pausar"
                 flags.iniciado = true;
                 flags.reconocerCNN = true;
     
+                set(handles.tituloGestoText, 'String', 'Reconociendo');
+                set(handles.robotRadio, 'Enable', 'on');
+                set(handles.robotRadio, 'Value', 1);
+                flags.dibujarEMGCNN = 0; % Para dibujar gesto reconocido
+
                 % Configuración específica de CNN
                 ejecutarCNNTiempoReal(handles, reconocimientoConfiguracion); % Inicia el reconocimiento en tiempo real
-    
+                
+            else
                 % Verificar si el robot está moviéndose y detenerlo si es necesario
                 if flags.isRobotMoving
                     pararMandoRobot(datosUsuario, EV3); % Detener robot si está en movimiento
                 end
-    
-            elseif flags.reconocerCNN % Si está activo, pausar y finalizar el reconocimiento
-                disp('Pausando el reconocimiento con CNN...');
-                flags.reconocerCNN = false; % Finalizar el reconocimiento actual
+
+                flags.moverIMULego = 0;
+                disp(['Estado de moverIMULego al pausar reconocimiento: ', num2str(flags.moverIMULego)]); % Mostrar el estado al pausar
                 flags.iniciado = false;
+                 set(hObject, 'String', 'Reanudar');
+                flags.reconocerCNN = false; % Finalizar el reconocimiento actual
+                set(handles.tituloGestoText, 'String', '');
+                set(handles.pausaRadio, 'Value', 1);
+                set(handles.robotRadio, 'Enable', 'off');
                 flags.reconocimientoActivo = false;
-                set(hObject, 'String', 'Iniciar'); % Cambiar el texto a "Iniciar"
-                
-            else % Si está pausado, reiniciar desde cero
-                disp('Reiniciando reconocimiento con CNN desde el principio...');
-                flags.reconocerCNN = true;
-                flags.iniciado = true;
-                flags.reconocimientoActivo = true;
-                set(hObject, 'String', 'Pausar'); % Cambiar el texto a "Pausar"
-                ejecutarCNNTiempoReal(handles, reconocimientoConfiguracion); % Reinicia el reconocimiento
             end
         otherwise
             set(handles.mensajesTextBox, 'String', 'Error: Algoritmo desconocido.');
@@ -255,7 +255,23 @@ function radiobutton27_Callback(hObject, eventdata, handles)
 
 
     function radiobutton28_Callback(hObject, eventdata, handles)
-    global algoritmoSeleccionado flags;
+    global algoritmoSeleccionado flags datosUsuario;
+
+    % Verifica si los datos de usuario no están cargados
+    if ~isfield(datosUsuario, 'usuarioValidoFlag') || datosUsuario.usuarioValidoFlag == 0
+        nombreUsuario = 'Mishel';  % Nombre de usuario predeterminado
+        disp(['Cargando usuario predeterminado: ' nombreUsuario]);
+        
+        try
+            archivo = load(['.\usersData\' nombreUsuario]);  % Ruta al archivo del usuario
+            datosUsuario = archivo.datosUsuario;  % Cargar los datos
+            datosUsuario.usuarioValidoFlag = 1;  % Marcar como usuario válido
+            disp('Usuario predeterminado cargado correctamente.');
+        catch
+            disp('Error al cargar el usuario predeterminado.');
+            return;  % Salir si no se puede cargar el usuario
+        end
+    end
 
     if flags.reconocimientoActivo
         set(hObject, 'Value', 0); % Desactivar el botón si hay reconocimiento activo

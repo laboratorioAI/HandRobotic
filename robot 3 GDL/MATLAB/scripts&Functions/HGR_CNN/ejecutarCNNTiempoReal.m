@@ -1,5 +1,5 @@
 function ejecutarCNNTiempoReal(handles, reconocimientoConfiguracion)
-    global flags myoObject; % Usar la conexión existente al Myo
+    global flags myoObject datosUsuario; % Usar la conexión existente al Myo
 
     % Configuración de parámetros
     window_size = 300; % Tamaño de la ventana deslizante
@@ -27,6 +27,7 @@ function ejecutarCNNTiempoReal(handles, reconocimientoConfiguracion)
 
     %% Loop de reconocimiento
     disp('Iniciando reconocimiento en tiempo real...');
+    
     while flags.reconocerCNN
         t = tic;
         try
@@ -59,7 +60,7 @@ function ejecutarCNNTiempoReal(handles, reconocimientoConfiguracion)
             fprintf(sprintf("Tiempo restante: %.2f, Predicción: %s\n", period - toc(t), class_pred_str));
             
             % Llamar a la función dibujarGUI_CNN para graficar el gesto
-            dibujarGUI_CNN(handles, gestoReconocido, flags, myoObject, reconocimientoConfiguracion);
+            dibujarGUI_CNN(handles, gestoReconocido, myoObject, reconocimientoConfiguracion, datosUsuario);
 
         catch ME
             disp(['Error en el loop de reconocimiento: ', ME.message]);

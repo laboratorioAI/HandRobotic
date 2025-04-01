@@ -21,7 +21,7 @@ while ~flags.detener % mientras no se dé la orden de "detener" el sistema contin
     
     
     %% Esperando inicio del reconocimiento
-    while ~flags.reconocer && ~flags.detener && ~flags.reconocerCNN % O bien se da orden de "detener" o "reconocer", si no, continúa esperando
+    while ~flags.reconocer &&  ~flags.reconocerCNN && ~flags.detener  % O bien se da orden de "detener" o "reconocer", si no, continúa esperando
         if isConnectedMyo
             % Aquí dibujamos la GUI mientras esperamos el inicio del reconocimiento
             [datosUsuario] = dibujarGUI(handles, datosUsuario, myoObject, reconocimientoConfiguracion, emg);

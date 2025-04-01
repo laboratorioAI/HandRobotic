@@ -5,21 +5,7 @@ function [datosUsuario] =dibujarGUI(handles,datosUsuario,myoObject ,reconocimien
 
 global axesGesto flags YPRang
 
-% Verifica si los datos de usuario no están cargados
-if ~isfield(datosUsuario, 'usuarioValidoFlag') || datosUsuario.usuarioValidoFlag == 0
-    nombreUsuario = 'Mishel';  % Nombre de usuario predeterminado
-    disp(['Cargando usuario predeterminado: ' nombreUsuario]);
-    
-    try
-        archivo = load(['.\usersData\' nombreUsuario]);  % Ruta al archivo del usuario
-        datosUsuario = archivo.datosUsuario;  % Cargar los datos
-        datosUsuario.usuarioValidoFlag = 1;  % Marcar como usuario válido
-        disp('Usuario predeterminado cargado correctamente.');
-    catch
-        disp('Error al cargar el usuario predeterminado.');
-        return;  % Salir si no se puede cargar el usuario
-    end
-end
+
 
 % Proceso para EMG
 
@@ -91,6 +77,7 @@ else
         handles.pitchText.String = '';
         handles.rollText.String = '';
     end
+
     %% gesto
     % dibujar el gesto cuando se está reconociendo un gesto específico.
     if flags.dibujarGestoReconocido
