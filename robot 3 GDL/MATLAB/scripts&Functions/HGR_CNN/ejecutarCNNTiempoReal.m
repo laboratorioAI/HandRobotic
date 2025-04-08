@@ -1,10 +1,15 @@
 function ejecutarCNNTiempoReal(handles, reconocimientoConfiguracion)
-    global flags myoObject; % Usar la conexión existente al Myo
+    global flags myoObject datosUsuario gestoReconocido; % Usar la conexión existente al Myo
+
+    global mensajeEspere  
+    mensajeEspere={'Preparando para reconocimiento', 'por favor espere'};
+    h1=espere;
+    drawnow
 
     % Configuración de parámetros
     window_size = 300; % Tamaño de la ventana deslizante
     stride = 30; % Estride para la ventana
-    addpath(genpath('MyoMex-master')); % Asegúrate de incluir las librerías necesarias
+    % addpath(genpath('MyoMex-master')); % Asegúrate de incluir las librerías necesarias
 
     period = 1/200 * stride; % Período ajustado para sincronización
 
@@ -25,8 +30,15 @@ function ejecutarCNNTiempoReal(handles, reconocimientoConfiguracion)
         error(['Error al cargar el modelo CNN-LSTM: ', ME.message]);
     end
 
+    close(h1);
+    drawnow
+
+    %preparativosCNN;
+
     %% Loop de reconocimiento
     disp('Iniciando reconocimiento en tiempo real...');
+    % Variable para controlar el tiempo de retardo después de cada gesto
+    tiempo_retraso_post_gesto = 1;  % 1 segundo de retraso después de la detección del gesto
     while flags.reconocerCNN
         t = tic;
         try
@@ -59,15 +71,19 @@ function ejecutarCNNTiempoReal(handles, reconocimientoConfiguracion)
             fprintf(sprintf("Tiempo restante: %.2f, Predicción: %s\n", period - toc(t), class_pred_str));
             
             % Llamar a la función dibujarGUI_CNN para graficar el gesto
-            dibujarGUI_CNN(handles, gestoReconocido, flags, myoObject, reconocimientoConfiguracion);
-
+            dibujarGUI_CNN(handles, gestoReconocido, reconocimientoConfiguracion);
+            % preparativosCNN;
+            % Ralentizar después de detectar un gesto
+            pause(tiempo_retraso_post_gesto);  % Pausa después de un gesto
+            
         catch ME
             disp(['Error en el loop de reconocimiento: ', ME.message]);
             break; % Salir del loop si hay un error crítico
         end
 
         % Sincronización del loop
-        pause(max(0, period - toc(t))); % Esperar tiempo restante
+        pause(max(0, period - toc(t))); % Pausa adicional
+        %pause(1.2);
     end
 
     disp('Reconocimiento en tiempo real finalizado.');

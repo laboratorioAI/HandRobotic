@@ -4,7 +4,16 @@ function gestos2MandoRobot(handles)
 global flags datosUsuario myoObject EV3
 
 flags.kdiscernirGesto2Robot = flags.kdiscernirGesto2Robot + 1;
-gestoRespuesta = datosUsuario.gestoRespuesta;
+
+% Detectamos si datosUsuario.gestoRespuesta está disponible
+if isfield(datosUsuario, 'gestoRespuesta') && ~isempty(datosUsuario.gestoRespuesta)
+    gestoRespuesta = datosUsuario.gestoRespuesta;  % Usamos la variable de datosUsuario si está definida
+    disp(['gestoRespuesta (datosUsuario): ', num2str(gestoRespuesta)]);  % Depuración
+else
+    gestoRespuesta = flags.gestoRespuesta;  % Si no, usamos la de flags.gestoRespuesta
+    disp(['gestoRespuesta (flags): ', num2str(gestoRespuesta)]);  % Depuración
+end
+
 
 % Asociamos el gesto a su descripción
 switch gestoRespuesta

@@ -13,31 +13,25 @@
 
 
 %% SCRIPT
-global emg flags myoObject datosUsuario reconocimientoConfiguracion isConnectedMyo
+global emg flags myoObject datosUsuario reconocimientoConfiguracion isConnectedMyo algoritmoSeleccionado
 
 %%
 % Lazo principal para ejecuciones múltiples
 while ~flags.detener % mientras no se dé la orden de "detener" el sistema continúa
     
-    
     %% Esperando inicio del reconocimiento
-    while ~flags.reconocer && ~flags.detener && ~flags.reconocerCNN % O bien se da orden de "detener" o "reconocer", si no, continúa esperando
+    while ~flags.reconocer && ~flags.reconocerCNN && ~flags.detener  % O bien se da orden de "detener" o "reconocer", si no, continúa esperando
         if isConnectedMyo
             % Aquí dibujamos la GUI mientras esperamos el inicio del reconocimiento
             [datosUsuario] = dibujarGUI(handles, datosUsuario, myoObject, reconocimientoConfiguracion, emg);
-            
-            % Llamamos a dibujarGUI_CNN si se requiere la visualización de gestos en tiempo real
-            if flags.reconocerCNN
-                % Aquí colocas la función para graficar el gesto, si es necesario
-                gestoReconocido = 'Esperando...'; % Si es necesario definir algo mientras espera
-                dibujarGUI_CNN(handles, gestoReconocido, flags, myoObject);
-            end
         end
         pause(0.05); % Pausa para evitar que el loop consuma demasiados recursos
         drawnow % Actualiza la interfaz gráfica
     end
     
-    if flags.reconocer
+    %% Ejecutando el algoritmo seleccionado (KNN o CNN)
+    if algoritmoSeleccionado == 1 && flags.reconocer 
+        disp("Entrando a preparativos del algoritmo KNN...");
         drawnow
         preparativosReconocimiento
         
@@ -60,7 +54,7 @@ while ~flags.detener % mientras no se dé la orden de "detener" el sistema contin
             stop(timerEnvio) % (este timer viene de "reconocimiento")
             delete(timerEnvio)
         catch
-            disp('qué pasó con el timer, ahora sí debería funcionar!!')
+            disp('¿Qué pasó con el timer? Ahora sí debería funcionar!!')
         end
         beep
         
@@ -68,11 +62,50 @@ while ~flags.detener % mientras no se dé la orden de "detener" el sistema contin
         %% limitando vectores
         flags.kEjecucionesLoop = kEjecucionesLoop;
         
-        datosUsuario.tiempoClasificacionVector = tiempoClasificacionVector(1:kEjecucionesLoop - 1); % kEjecucionesLoop viene de "reconcimiento"
+        datosUsuario.tiempoClasificacionVector = tiempoClasificacionVector(1:kEjecucionesLoop - 1); % kEjecucionesLoop viene de "reconocimiento"
         datosUsuario.tiempoOcioVector = tiempoOcioVector(1:kEjecucionesLoop - 1);
         datosUsuario.tiempoLoopTotalVector = tiempoLoopTotalVector(1:kEjecucionesLoop - 1);
         datosUsuario.gestoRespuestaVector = gestoRespuestaVector(1:kEjecucionesLoop);
     end
+
     
+    %% Ejecutando el algoritmo seleccionado (KNN o CNN)
+    if algoritmoSeleccionado == 2 && flags.reconocerCNN
+       disp("Entrando a preparativos del algoritmo CNN...");
+        drawnow
+        preparativosCNN
+        
+        %% mega lazo de reconocimiento
+        while kEjecucionesLoop < numEjecucionesTimer && flags.reconocerCNN && ~flags.detener
+            % se ejecuta hasta que las ejecuciones del timer se sobrepasen o se
+            % anule la bandera de reconocimiento
+            drawnow
+            ejecutarCNNTiempoReal(handles, reconocimientoConfiguracion);
+        end
+        
+        disp('Fin en reconocimientoScirptGUI')
+        %% Salida
+        
+        %% detener timer
+        try
+            stop(timerReconocimiento) % (este timer viene de "reconocimiento")
+            delete(timerReconocimiento)
+            
+            stop(timerEnvio) % (este timer viene de "reconocimiento")
+            delete(timerEnvio)
+        catch
+            disp('¿Qué pasó con el timer? Ahora sí debería funcionar!!')
+        end
+        beep
+        
+        
+        %% limitando vectores
+        flags.kEjecucionesLoop = kEjecucionesLoop;
+        
+        datosUsuario.tiempoClasificacionVector = tiempoClasificacionVector(1:kEjecucionesLoop - 1); % kEjecucionesLoop viene de "reconocimiento"
+        datosUsuario.tiempoOcioVector = tiempoOcioVector(1:kEjecucionesLoop - 1);
+        datosUsuario.tiempoLoopTotalVector = tiempoLoopTotalVector(1:kEjecucionesLoop - 1);
+        datosUsuario.gestoRespuestaVector = gestoRespuestaVector(1:kEjecucionesLoop);
+    end
     
 end
