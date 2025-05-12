@@ -50,8 +50,8 @@ function conectarMyoButton_Callback(~, ~, handles)
         flags.detener = 0; % En 1 se detiene todo, 0 es no detener. seguir
         flags.reconocer = 0; % En 1 reconoce
         flags.reconocerCNN = 0; % En 1 reconoce
-        flags.dibujarEMG = 1; % 1 dibuja EMG IMU, 0 dibuja el gesto!
         flags.dibujarEMGCNN = 1;
+        flags.dibujarEMG = 1; % 1 dibuja EMG IMU, 0 dibuja el gesto!
         reconocimientoScriptGUI;
     end
 
@@ -91,7 +91,7 @@ function mostrarResultadosButton_Callback(~, ~, handles)
     set(handles.pausaRadio,'Value',1);
 
     flags.dibujarEMG = 1; % Para dibujar gesto reconocido!
-    flags.dibujarEMGCN = 1;
+    flags.dibujarEMGCNN = 1;
     set(handles.mostrarResultadosButton,'Enable','off');
 
     global mensajeEspere hEspere
@@ -133,13 +133,11 @@ function iniciarButton_Callback(hObject, ~, handles)
                 flags.dibujarEMG = 0; % Para dibujar gesto reconocido
                 set(handles.mostrarResultadosButton, 'Enable', 'on');
                 flags.moverIMULego = 1;
-                disp(['Estado de moverIMULego al iniciar reconocimiento: ', num2str(flags.moverIMULego)]); % Mostrar el estado al iniciar
             else
                 if flags.isRobotMoving
                     pararMandoRobot(datosUsuario, EV3);
                 end
                 flags.moverIMULego = 0;
-                disp(['Estado de moverIMULego al pausar reconocimiento: ', num2str(flags.moverIMULego)]); % Mostrar el estado al pausar
                 flags.iniciado = false;
                 set(hObject, 'String', 'Reanudar');
                 flags.reconocer = false;
@@ -147,23 +145,21 @@ function iniciarButton_Callback(hObject, ~, handles)
                 set(handles.pausaRadio, 'Value', 1);
                 set(handles.robotRadio, 'Enable', 'off');
                 flags.reconocimientoActivo = false; % Marca el fin del reconocimiento
-            end
+            end       
         case 2 % Caso CNN
             disp('Iniciando reconocimiento con CNN...');
             if ~flags.iniciado
-                flags.reconocimientoActivo = true; % Marca el inicio del reconocimiento
-                % flags.moverIMULego = 1;
-                % disp(['Estado de moverIMULego al iniciar reconocimiento: ', num2str(flags.moverIMULego)]); % Mostrar el estado al iniciar                        
+                flags.reconocimientoActivo = true; % Marca el inicio del reconocimiento                       
                 set(hObject, 'String', 'Pausar'); % Cambiar texto a "Pausar"
                 flags.iniciado = true;
                 flags.reconocerCNN = true;
-    
+
                 set(handles.tituloGestoText, 'String', 'Reconociendo');
                 set(handles.robotRadio, 'Enable', 'on');
                 set(handles.robotRadio, 'Value', 1);
                 flags.dibujarEMGCNN = 0; % Para dibujar gesto reconocido
-
                 % Configuración específica de CNN
+                % preparativosCNN;
                 ejecutarCNNTiempoReal(handles, reconocimientoConfiguracion); % Inicia el reconocimiento en tiempo real
                 
             else
@@ -175,13 +171,14 @@ function iniciarButton_Callback(hObject, ~, handles)
                 flags.moverIMULego = 0;
                 disp(['Estado de moverIMULego al pausar reconocimiento: ', num2str(flags.moverIMULego)]); % Mostrar el estado al pausar
                 flags.iniciado = false;
-                 set(hObject, 'String', 'Reanudar');
-                flags.reconocerCNN = false; % Finalizar el reconocimiento actual
+                set(hObject, 'String', 'Reanudar');
+                flags.reconocerCNN = false; 
                 set(handles.tituloGestoText, 'String', '');
                 set(handles.pausaRadio, 'Value', 1);
                 set(handles.robotRadio, 'Enable', 'off');
                 flags.reconocimientoActivo = false;
             end
+
         otherwise
             set(handles.mensajesTextBox, 'String', 'Error: Algoritmo desconocido.');
             beep;
@@ -254,14 +251,13 @@ function radiobutton27_Callback(hObject, eventdata, handles)
     end
 
 
-    function radiobutton28_Callback(hObject, eventdata, handles)
+function radiobutton28_Callback(hObject, eventdata, handles)
     global algoritmoSeleccionado flags datosUsuario;
-
+    
     % Verifica si los datos de usuario no están cargados
     if ~isfield(datosUsuario, 'usuarioValidoFlag') || datosUsuario.usuarioValidoFlag == 0
         nombreUsuario = 'Mishel';  % Nombre de usuario predeterminado
         disp(['Cargando usuario predeterminado: ' nombreUsuario]);
-        
         try
             archivo = load(['.\usersData\' nombreUsuario]);  % Ruta al archivo del usuario
             datosUsuario = archivo.datosUsuario;  % Cargar los datos

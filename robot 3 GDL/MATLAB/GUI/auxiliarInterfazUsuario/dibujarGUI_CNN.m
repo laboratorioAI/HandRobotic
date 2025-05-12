@@ -1,18 +1,21 @@
 function dibujarGUI_CNN(handles, gestoReconocido, myoObject, reconocimientoConfiguracion, datosUsuario)
-    global axesGesto YPRang flags
+    global axesGesto YPRang flags 
 
     flags.isRobotMoving = false;
     flags.moverIMULego = true;
     disp(['Valor de flags.moverIMULego antes del loop: ', mat2str(flags.moverIMULego)]);
     flags.kdiscernirGesto2Robot = 0;
 
+    disp(['Valor de flags.dibujarEMGCNN: ', num2str(flags.dibujarEMGCNN)]);
+    disp(['Valor de flags.reconocerCNN: ', num2str(flags.reconocerCNN)]);
+
     disp('Reconociendo gesto...');
     
-    if ischar(gestoReconocido) || isstring(gestoReconocido)
+    if ischar(gestoReconocido) | isstring(gestoReconocido)
         gestoReconocido = find(strcmp(gestoReconocido, reconocimientoConfiguracion.nameGestures));
     end
 
-    if isnumeric(gestoReconocido) && gestoReconocido > 0 && gestoReconocido <= length(reconocimientoConfiguracion.nameGestures)
+    if isnumeric(gestoReconocido) & (gestoReconocido > 0) & (gestoReconocido <= length(reconocimientoConfiguracion.nameGestures))
         nombreGestoRespuesta = reconocimientoConfiguracion.nameGestures{gestoReconocido};
 
         disp(['Nombre del gesto: ', nombreGestoRespuesta]);
@@ -37,53 +40,79 @@ function dibujarGUI_CNN(handles, gestoReconocido, myoObject, reconocimientoConfi
         end
 
         flags.gestoRespuesta = gestoReconocido;  % Aquí se asegura que flags.gestoRespuesta tenga el valor correcto
+        disp(['Valor de flags.gestoRespuesta asignado: ', num2str(flags.gestoRespuesta)]);
         flags.gestoDibujado = true;
     else
         set(handles.tituloGestoText, 'String', 'Reconociendo...');
         axesGesto.CData = zeros(size(axesGesto.CData)); 
     end
 
-    % Asegúrate de definir gestoRespuesta antes de usarla
     gestoRespuesta = flags.gestoRespuesta;  % Asignamos el valor de flags.gestoRespuesta a gestoRespuesta
+    disp(['Valor de flags.gestoRespuesta asignado a gestoRespuesta: ', num2str(gestoRespuesta)]);
 
-    % Actualización de la interfaz de usuario y los datos de EMG
-    if flags.dibujarEMGCNN
-        if ~flags.reconocerCNN
-            emgPlot = myoObject.myoData.emg_log;
-            myoObject.myoData.clearLogs();
-        else
-            emgPlot = datosUsuario.emgVector;
+
+    %% EMG
+    if ~flags.reconocerCNN
+        emgPlot = myoObject.myoData.emg_log;
+        myoObject.myoData.clearLogs();
+    else
+        emgPlot = datosUsuario.emgVector;
+    end
+
+    samplesLoop = size(emgPlot, 1);
+    if samplesLoop == 0
+        samplesLoop = 40;
+        emgPlot = zeros(40, 8);
+    elseif samplesLoop > 200 * 0.2
+        samplesLoop = 40;
+    end
+
+    datosUsuario.emgVector = circshift(datosUsuario.emgVector, -samplesLoop);
+    datosUsuario.emgVector(end - samplesLoop + 1:end, :) = emgPlot(end - samplesLoop + 1:end, :);
+
+    emgVector = datosUsuario.emgVector;
+
+    if isvalid(myoObject) && ~isempty(myoObject) && isfield(myoObject, 'myoData') && isfield(myoObject.myoData, 'rot')
+        try
+            try
+                R = myoObject.myoData.rot;  % Obtener la rotación
+            catch ME
+                disp('Error al obtener datos de myoObject:');
+                disp(ME.message);
+            end
+    
+            % Mostrar la matriz de rotación original
+            disp('Matriz de rotación original (R):');
+            disp(R);
+    
+            % Modificar la matriz de rotación (si es necesario)
+            matrizRotacion = R .* ([1 1 -1; 1 1 -1; -1 -1 1]);
+    
+            % Mostrar la matriz de rotación modificada
+            disp('Matriz de rotación modificada (matrizRotacion):');
+            disp(matrizRotacion);
+    
+            actualizarOrientacionGrafico(matrizRotacion, emgVector);
+
+        catch ME
+            disp('Error al obtener la orientación de myoObject:');
+            disp(ME.message);  % Mostrar el mensaje de error
         end
+    else
+        disp('myoObject no es válido o no tiene los datos necesarios.');
+    end
 
-        samplesLoop = size(emgPlot, 1);
-        if samplesLoop == 0
-            samplesLoop = 40;
-            emgPlot = zeros(40, 8);
-        elseif samplesLoop > 200 * 0.2
-            samplesLoop = 40;
-        end
 
-        datosUsuario.emgVector = circshift(datosUsuario.emgVector, -samplesLoop);
-        datosUsuario.emgVector(end - samplesLoop + 1:end, :) = emgPlot(end - samplesLoop + 1:end, :);
-
-        emgVector = datosUsuario.emgVector;
-
-        R = myoObject.myoData.rot;
-        matrizRotacion = R .* ([1 1 -1; 1 1 -1; -1 -1 1]);
-
-        actualizarOrientacionGrafico(matrizRotacion, emgVector);
-    else 
-        % Proceso del robot (si está en movimiento)
-        if flags.isRobotMoving
-            YPR = YPRang;
-            handles.yawText.String = num2str(YPR(1));   
-            handles.pitchText.String = num2str(-YPR(2)); 
-            handles.rollText.String = num2str(YPR(3));  
-        else
-            handles.yawText.String = '';
-            handles.pitchText.String = '';
-            handles.rollText.String = '';
-        end
+    % Proceso del robot (si está en movimiento)
+    if flags.isRobotMoving
+        YPR = YPRang;
+        handles.yawText.String = num2str(YPR(1));   
+        handles.pitchText.String = num2str(-YPR(2)); 
+        handles.rollText.String = num2str(YPR(3));  
+    else
+        handles.yawText.String = '';
+        handles.pitchText.String = '';
+        handles.rollText.String = '';
     end
 
     %% ROBOT

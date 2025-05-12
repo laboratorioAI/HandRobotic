@@ -5,6 +5,22 @@ function [datosUsuario] =dibujarGUI(handles,datosUsuario,myoObject ,reconocimien
 
 global axesGesto flags YPRang
 
+% Verifica si los datos de usuario no estï¿½n cargados
+if ~isfield(datosUsuario, 'usuarioValidoFlag') || datosUsuario.usuarioValidoFlag == 0
+    nombreUsuario = 'Mishel';  % Nombre de usuario predeterminado
+    disp(['Cargando usuario predeterminado: ' nombreUsuario]);
+    
+    try
+        archivo = load(['.\usersData\' nombreUsuario]);  % Ruta al archivo del usuario
+        datosUsuario = archivo.datosUsuario;  % Cargar los datos
+        datosUsuario.usuarioValidoFlag = 1;  % Marcar como usuario vï¿½lido
+        disp('Usuario predeterminado cargado correctamente.');
+    catch
+        disp('Error al cargar el usuario predeterminado.');
+        return;  % Salir si no se puede cargar el usuario
+    end
+end
+
 % Proceso para EMG
 
 if flags.dibujarEMG
@@ -14,16 +30,16 @@ if flags.dibujarEMG
         emgPlot= myoObject.myoData.emg_log; % Esperando reconocimiento
         myoObject.myoData.clearLogs();  % Limpiar los logs de EMG
         
-    else % en el caso de que esté reconociendo
-        emgPlot = emg ; % Datos EMG que se están reconociendo
+    else % en el caso de que estï¿½ reconociendo
+        emgPlot = emg ; % Datos EMG que se estn reconociendo
     end
     
-    % Actualización de los datos EMG
+    % Actualizacin de los datos EMG
     samplesLoop=size(emgPlot,1);
     
     if samplesLoop == 0
         samplesLoop = 40 ;
-        emgPlot = zeros( 40 , 8 ) ; % Si no hay datos, inicializa como vacío
+        emgPlot = zeros( 40 , 8 ) ; % Si no hay datos, inicializa como vaco
         
         flags.kPerdidasDibujarGUI = flags.kPerdidasDibujarGUI + 1 ;
         set ( handles.perdidasText , 'String' , ['NoData!' num2str( flags.kPerdidasDibujarGUI ) ] ) ;
@@ -33,8 +49,8 @@ if flags.dibujarEMG
         
     end
     
-    % Actualización de los datos de EMG en el vector de usuario
-    flags.kEjecucionesDibujarGUI = flags.kEjecucionesDibujarGUI + 1 ; % cuenta cuántas veces se dibujó!
+    % Actualizacin de los datos de EMG en el vector de usuario
+    flags.kEjecucionesDibujarGUI = flags.kEjecucionesDibujarGUI + 1 ; % cuenta cuntas veces se dibuj!
     
     datosUsuario.emgVector = circshift(datosUsuario.emgVector ,-samplesLoop);
     datosUsuario.emgVector(end-samplesLoop+1:end,:) = emgPlot(end-samplesLoop+1:end,:);
@@ -44,11 +60,11 @@ if flags.dibujarEMG
     
     
     
-    %% matriz de rotación
+    %% matriz de rotacin
     R = myoObject.myoData.rot;
     matrizRotacion = R .* ( [1 1 -1;1 1 -1;-1 -1 1] );
     
-    %% dibujar la orientación y los datos EMG
+    %% dibujar la orientacin y los datos EMG
     actualizarOrientacionGrafico(matrizRotacion,emgVector)
     
     
@@ -76,7 +92,7 @@ else
         handles.rollText.String = '';
     end
     %% gesto
-    % dibujar el gesto cuando se está reconociendo un gesto específico.
+    % dibujar el gesto cuando se est reconociendo un gesto especfico.
     if flags.dibujarGestoReconocido
         flags.dibujarGestoReconocido = false ;
         gestoRespuesta = datosUsuario.gestoRespuestaPendiente;
@@ -93,7 +109,7 @@ else
     
     %% no gesto
     % Si el gesto reconocido es de tipo "no gesto", 
-    % limpia el área de dibujo y muestra la imagen asociada a un gesto "no reconocido"
+    % limpia el ï¿½rea de dibujo y muestra la imagen asociada a un gesto "no reconocido"
     if gestoRespuesta==6 || gestoRespuesta==0 % variantes del no gesto
         % escribiendo gesto...
         puntosDibujar = rem( flags.kEjecucionesLoop , 4 ) ;
@@ -125,21 +141,21 @@ else
             flags.LimpiarAxes=0;
         end
         
-        datosUsuario.gestoDibujado = false ; % variable para saber si ya se dibujó o no
+        datosUsuario.gestoDibujado = false ; % variable para saber si ya se dibuj o no
         
         
         
     else
         %% GESTO
-        % Si el gesto aún no ha sido dibujado
+        % Si el gesto an no ha sido dibujado
         if ~datosUsuario.gestoDibujado
             % dibujando gesto una vez
             nombreGestoRespuesta = reconocimientoConfiguracion.nameGestures{ gestoRespuesta } ; % Obtener el nombre del gesto
             imagenGesto=reconocimientoConfiguracion.imagenGesto.(nombreGestoRespuesta); % Cargar la imagen del gesto
             
-            set(handles.tituloGestoText,'String',nombreGestoRespuesta) % Actualizar el título con el nombre del gesto
+            set(handles.tituloGestoText,'String',nombreGestoRespuesta) % Actualizar el ttulo con el nombre del gesto
             
-            axesGesto.CData=imagenGesto; % Actualizar el título con el nombre del gesto
+            axesGesto.CData=imagenGesto; % Actualizar el ttulo con el nombre del gesto
             
             flags.LimpiarAxes = 1;
             datosUsuario.gestoDibujado = true ;

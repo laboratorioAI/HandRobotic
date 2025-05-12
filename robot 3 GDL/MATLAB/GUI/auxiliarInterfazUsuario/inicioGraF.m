@@ -46,7 +46,6 @@ matrizRot = myoObject.myoData.rot;
 [datosUsuario.orientacion] = rotMatrix2angNoProble(matrizRot,datosUsuario.orientacion);
 matrizRotacion = datosUsuario.orientacion.matrizRot ;
 
-
 % calculos
 magX = sqrt(sum(matrizRotacion(:,1).^2));
 magY = sqrt(sum(matrizRotacion(:,2).^2));

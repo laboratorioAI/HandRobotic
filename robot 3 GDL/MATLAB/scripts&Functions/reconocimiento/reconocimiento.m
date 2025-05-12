@@ -159,7 +159,7 @@ datosUsuario.gestoRespuesta = gestoRespuesta ;
 
 
 %% Imprimiendo resultados
-if gestoRespuesta ~= 0 || gestoRespuesta ~= 0  % O no gesto resultante o noGesto
+if gestoRespuesta ~= 0 | gestoRespuesta ~= 0  % O no gesto resultante o noGesto
     % Cuando el gesto resultante no supera el umbral o cuando el
     % resultado del KNN devuelve no gesto
     
@@ -174,11 +174,9 @@ else
 end
 
 
-disp(['Valor de flags.moverIMULego if: ', mat2str(flags.moverIMULego)]);  % mat2str convierte el valor lógico en texto
 
 %% ROBOT
 if flags.moverIMULego
-    disp('Entrando en el bloque de moverIMULego') 
     gestos2MandoRobot(handles)
 
 %     angulosEnviarRobot; % se enviaba en el drawnow! Eran muchos...

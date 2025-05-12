@@ -4,6 +4,7 @@ function gestos2MandoRobot(handles)
 global flags datosUsuario myoObject EV3
 
 flags.kdiscernirGesto2Robot = flags.kdiscernirGesto2Robot + 1;
+
 % Detectamos si datosUsuario.gestoRespuesta está disponible
 if isfield(datosUsuario, 'gestoRespuesta') && ~isempty(datosUsuario.gestoRespuesta)
     gestoRespuesta = datosUsuario.gestoRespuesta;  % Usamos la variable de datosUsuario si está definida
