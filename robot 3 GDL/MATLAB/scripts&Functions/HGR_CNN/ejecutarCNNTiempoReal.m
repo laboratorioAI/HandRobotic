@@ -9,7 +9,6 @@ function ejecutarCNNTiempoReal(handles, reconocimientoConfiguracion)
     % Configuración de parámetros
     window_size = 300; % Tamaño de la ventana deslizante
     stride = 30; % Estride para la ventana
-    % addpath(genpath('MyoMex-master')); % Asegúrate de incluir las librerías necesarias
 
     period = 1/200 * stride; % Período ajustado para sincronización
 
@@ -33,12 +32,19 @@ function ejecutarCNNTiempoReal(handles, reconocimientoConfiguracion)
     close(h1);
     drawnow
 
-    %preparativosCNN;
+    global bloqueoGesto
+    if isempty(bloqueoGesto)
+        bloqueoGesto.ultimoGesto = 0;
+        bloqueoGesto.tiempoUltimoGesto = -inf;
+        bloqueoGesto.duracionBloqueo = 15; % duración en segundos
+    end
+
+
 
     %% Loop de reconocimiento
     disp('Iniciando reconocimiento en tiempo real...');
     % Variable para controlar el tiempo de retardo después de cada gesto
-    tiempo_retraso_post_gesto = 1;  % 1 segundo de retraso después de la detección del gesto
+    
     while flags.reconocerCNN
         t = tic;
         try
@@ -67,14 +73,41 @@ function ejecutarCNNTiempoReal(handles, reconocimientoConfiguracion)
                 gestoReconocido = 0;  % Si no hay coincidencia, devolver un valor por defecto (gesto desconocido)
             end
 
-            % Mostrar resultados en consola
-            fprintf(sprintf("Tiempo restante: %.2f, Predicción: %s\n", period - toc(t), class_pred_str));
+            %% Prueba de tiempos
+            tiempoActual = toc(tic);  % Tiempo desde inicio
+
+            % Evaluar si se puede aceptar el nuevo gesto
+            puedeAceptar = (gestoReconocido ~= 0) && ...
+                           ((gestoReconocido ~= bloqueoGesto.ultimoGesto) || ...
+                            (tiempoActual - bloqueoGesto.tiempoUltimoGesto >= bloqueoGesto.duracionBloqueo));
             
-            % Llamar a la función dibujarGUI_CNN para graficar el gesto
-            dibujarGUI_CNN(handles, gestoReconocido, reconocimientoConfiguracion);
-            % preparativosCNN;
+            if puedeAceptar
+                bloqueoGesto.ultimoGesto = gestoReconocido;
+                bloqueoGesto.tiempoUltimoGesto = tiempoActual;
+            
+                fprintf("Gesto aceptado: %s\n", class_pred_str);
+            
+                datosUsuario.gestoRespuesta = gestoReconocido;
+                dibujarGUI_CNN(handles, gestoReconocido, reconocimientoConfiguracion);
+                % Modificar el tiempo de retraso post gesto si es un "waveIn"
+                if gestoReconocido == 1  % waveIn corresponde al índice 1
+                    tiempo_retraso_post_gesto = 20;  % Mayor retraso
+                else
+                    tiempo_retraso_post_gesto = 2;  % Tiempo estándar para los otros gestos
+                end
+
+                % Pausa después de un gesto
+                pause(tiempo_retraso_post_gesto);
+            
+            else
+                fprintf("Gesto ignorado: %s (esperando cooldown)\n", class_pred_str);
+            end
+
+            % Mostrar resultados en consola
+            % fprintf(sprintf("Tiempo restante: %.2f, Predicción: %s\n", period - toc(t), class_pred_str));
+           
             % Ralentizar después de detectar un gesto
-            pause(tiempo_retraso_post_gesto);  % Pausa después de un gesto
+            %pause(tiempo_retraso_post_gesto);  % Pausa después de un gesto
             
         catch ME
             disp(['Error en el loop de reconocimiento: ', ME.message]);
@@ -83,7 +116,6 @@ function ejecutarCNNTiempoReal(handles, reconocimientoConfiguracion)
 
         % Sincronización del loop
         pause(max(0, period - toc(t))); % Pausa adicional
-        %pause(1.2);
     end
 
     disp('Reconocimiento en tiempo real finalizado.');

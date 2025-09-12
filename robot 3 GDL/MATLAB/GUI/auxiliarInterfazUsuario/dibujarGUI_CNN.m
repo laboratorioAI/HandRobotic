@@ -3,12 +3,7 @@ function dibujarGUI_CNN(handles, gestoReconocido, reconocimientoConfiguracion)
 
     flags.isRobotMoving = false;
     flags.moverIMULego = true;
-    
-    disp(['Valor de flags.moverIMULego antes del loop: ', mat2str(flags.moverIMULego)]);  % Depuración
-    flags.kdiscernirGesto2Robot = 0;
-
-    disp(['Valor de flags.dibujarEMGCNN: ', num2str(flags.dibujarEMGCNN)]);  % Depuración
-    disp(['Valor de flags.reconocerCNN: ', num2str(flags.reconocerCNN)]);  % Depuración
+        flags.kdiscernirGesto2Robot = 0;
 
     disp('Reconociendo gesto...');
     
@@ -39,10 +34,6 @@ function dibujarGUI_CNN(handles, gestoReconocido, reconocimientoConfiguracion)
             axesGesto.CData = zeros(size(axesGesto.CData));
             set(handles.tituloGestoText, 'String', 'Error al cargar imagen');
         end
-        
-        % SOLUCION USANDO FLAGS
-        % flags.gestoRespuesta = gestoReconocido;  % Aquí se asegura que flags.gestoRespuesta tenga el valor correcto
-        % disp(['Valor de flags.gestoRespuesta asignado: ', num2str(flags.gestoRespuesta)]);
 
         % Asignamos el gesto reconocido directamente a datosUsuario.gestoRespuesta
         datosUsuario.gestoRespuesta = gestoReconocido;  % Aquí es donde asignamos el gesto reconocido
@@ -53,15 +44,6 @@ function dibujarGUI_CNN(handles, gestoReconocido, reconocimientoConfiguracion)
         set(handles.tituloGestoText, 'String', 'Reconociendo...');
         axesGesto.CData = zeros(size(axesGesto.CData)); 
     end
-
-    % SOLUCION USANDO FLAGS
-    % Asignamos el valor de flags.gestoRespuesta a una variable 'gestoRespuesta'
-    % gestoRespuesta = flags.gestoRespuesta;
-    % disp(['Valor de gestoRespuesta asignado desde flags.gestoRespuesta: ', num2str(gestoRespuesta)]);
-
-    % Ahora, asignamos 'gestoRespuesta' a 'datosUsuario.gestoRespuesta'
-    % datosUsuario.gestoRespuesta = gestoRespuesta;
-    % disp(['Valor de datosUsuario.gestoRespuesta: ', num2str(datosUsuario.gestoRespuesta)]);
 
     % Ahora asignamos directamente el valor de datosUsuario.gestoRespuesta a gestoRespuesta
     gestoRespuesta = datosUsuario.gestoRespuesta;  % Se asigna el valor directamente de datosUsuario
@@ -89,14 +71,46 @@ function dibujarGUI_CNN(handles, gestoReconocido, reconocimientoConfiguracion)
     emgVector = datosUsuario.emgVector;
 
     %% matriz de rotación
-    R = myoObject.myoData.rot;
-    %disp("Matriz de Rotacion");
-    %disp(R);
-    matrizRotacion = R .* ([1 1 -1; 1 1 -1; -1 -1 1]);
-    %disp(matrizRotacion);
+    % R = myoObject.myoData.rot;
+    % matrizRotacion = R .* ([1 1 -1; 1 1 -1; -1 -1 1]);
     
     %% dibujar la orientación y los datos EMG
-    actualizarOrientacionGrafico(matrizRotacion, emgVector)
+    % actualizarOrientacionGrafico(matrizRotacion, emgVector)
+
+    %% MATRIZ DE ROTACIÓN
+    % Intentar obtener la matriz de rotación directamente desde myoObject
+    try
+        if isfield(myoObject, 'myoData') && isfield(myoObject.myoData, 'rot') && ~isempty(myoObject.myoData.rot)
+            R = myoObject.myoData.rot;
+        else
+            % Si no hay rotación, intentar usar el método getRotation de la clase Myo
+            miMyo = Myo();  % Instancia que usa el myoObject global
+            R = miMyo.getRotation();  % Llama al método
+        end
+    catch ME
+        % En caso de cualquier error, usar matriz identidad como valor por defecto
+        disp(['Error al obtener la matriz de rotación: ', ME.message]);
+        R = eye(3); % Valor predeterminado
+    end
+
+    % Verificar que la matriz R tiene las dimensiones correctas
+    if size(R, 1) == 3 && size(R, 2) == 3
+        % Si la matriz tiene las dimensiones correctas, realizar la transformación
+        matrizRotacion = R .* ([1 1 -1; 1 1 -1; -1 -1 1]);
+    else
+        % Si la matriz no tiene las dimensiones correctas, mostrar un mensaje de error
+        disp('Error: La matriz de rotación no tiene las dimensiones correctas.');
+        matrizRotacion = eye(3);  % Usar una matriz identidad como valor predeterminado
+    end
+    
+    %% Dibujar la orientación y los datos EMG
+    % Aquí seguimos con la parte de los gráficos si no hay error con la matriz de rotación
+    if exist('matrizRotacion', 'var') && exist('emgVector', 'var')
+        actualizarOrientacionGrafico(matrizRotacion, emgVector);
+    else
+        disp('Error: Datos para la orientación o los EMG no están disponibles.');
+    end
+
 
     % Proceso del robot (si está en movimiento)
     if flags.isRobotMoving
@@ -110,10 +124,22 @@ function dibujarGUI_CNN(handles, gestoReconocido, reconocimientoConfiguracion)
         handles.rollText.String = '';
     end
 
-
+    %% ROBOT
+     % if flags.moverIMULego
+        % gestos2MandoRobot(handles)
+    % end
 
     %% ROBOT
     if flags.moverIMULego
-        gestos2MandoRobot(handles)
-    end
+        global bloqueoGesto
+        tiempoActual = now * 24 * 3600;  % Tiempo actual en segundos
+    
+        if tiempoActual - bloqueoGesto.tiempoUltimoGesto >= bloqueoGesto.duracionBloqueo
+            disp('Se permite enviar orden al robot (pasó el tiempo de bloqueo)');
+            gestos2MandoRobot(handles)
+        else
+            disp('NO se permite enviar orden al robot (aún en tiempo de bloqueo)');
+        end
+end
+
 end

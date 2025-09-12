@@ -80,7 +80,7 @@ while ~flags.detener % mientras no se dé la orden de "detener" el sistema contin
             % se ejecuta hasta que las ejecuciones del timer se sobrepasen o se
             % anule la bandera de reconocimiento
             drawnow
-            ejecutarCNNTiempoReal(handles, reconocimientoConfiguracion);
+            %ejecutarCNNTiempoReal(handles, reconocimientoConfiguracion);
         end
         
         disp('Fin en reconocimientoScirptGUI')

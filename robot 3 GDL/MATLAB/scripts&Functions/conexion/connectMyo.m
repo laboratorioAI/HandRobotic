@@ -24,7 +24,9 @@ catch
     try
         % Nueva conexión
         myoObject = MyoMex();
+        myoObject.myoData.startStreaming();
         beep
+        disp('Conexión con MYO exitosa.');
         % fprintf('Conexión con MYO exitosa!!!\n');
     catch
         % No conexión posible

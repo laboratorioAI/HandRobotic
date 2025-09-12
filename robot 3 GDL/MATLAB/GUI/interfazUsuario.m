@@ -158,9 +158,8 @@ function iniciarButton_Callback(hObject, ~, handles)
                 set(handles.robotRadio, 'Enable', 'on');
                 set(handles.robotRadio, 'Value', 1);
                 flags.dibujarEMGCNN = 0; % Para dibujar gesto reconocido
-                % Configuración específica de CNN
-                % preparativosCNN;
-                % ejecutarCNNTiempoReal(handles, reconocimientoConfiguracion); % Inicia el reconocimiento en tiempo real
+                set(handles.mostrarResultadosButton, 'Enable', 'on');
+                flags.moverIMULego = 1;
                 
             else
                 % Verificar si el robot está moviéndose y detenerlo si es necesario

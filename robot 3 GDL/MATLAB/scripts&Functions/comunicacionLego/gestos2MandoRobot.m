@@ -14,7 +14,7 @@ else
     disp(['gestoRespuesta (flags): ', num2str(gestoRespuesta)]);  % Depuración
 end
 
-
+disp(['isRobotMoving antes del caso: ', num2str(flags.isRobotMoving)]);
 % Asociamos el gesto a su descripción
 switch gestoRespuesta
     case 1
@@ -24,11 +24,15 @@ switch gestoRespuesta
         
         if ~flags.isRobotMoving % Bandera para el toggle de play/pause
             % Alistándose
+            disp('Ejecutando caso Wave In');
             flags.isRobotMoving = true;
+            disp(['isRobotMoving después de setearlo a true: ', num2str(flags.isRobotMoving)]);
             set(handles.mensajesTextBox, 'String', 'MANDO DEL BRAZO ROBOTICO')
             
             % Obtener la posición inicial del myo
             Ro = myoObject.myoData.rot;
+            % disp('Matriz de rotación Ro --> Lego:');
+            % disp(Ro); 
             datosUsuario.orientacion = initOrientacion(Ro);
             
             % Enviar comando de inicio al robot

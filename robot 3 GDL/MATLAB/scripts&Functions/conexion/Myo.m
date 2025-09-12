@@ -3,22 +3,21 @@ classdef Myo < handle
     % Esta clase interactúa con el dispositivo Myo para leer datos EMG y realizar otras tareas.
 
     properties (GetAccess = public, SetAccess = private)
-        isConnected = false;
+        % isConnectedMyo = false;
         myoObject
     end
 
     methods
         %% Constructor
         function obj = Myo()
-            % El constructor intenta conectar el Myo
-            disp('Intentando conectar al Myo...');
-            obj.connectMyo();  % Intenta conectar al Myo
-            if ~obj.isConnected 
-                obj.connectMyo();
-            end
-
-            if ~obj.isConnected 
-                warning("No se pudo conectar al Myo.");
+            % El constructor debería no conectar el Myo, solo utilizar el objeto ya conectado
+            global myoObject
+            
+            if isempty(myoObject)
+                error('El objeto myoObject no está conectado.');
+            else
+                obj.myoObject = myoObject;  % Utiliza el myoObject global
+                disp('Objeto Myo conectado.');
             end
         end
 
@@ -27,38 +26,12 @@ classdef Myo < handle
             obj.myoObject.myoData.clearLogs();
         end
 
-        %% Conectar Myo
-        function connectMyo(obj)
-            obj.isConnected = true; % Bandera que indica estado de conexión
-
-            try
-                % Revisando si existe conexión existente
-                obj.isConnected = obj.myoObject.myoData.isStreaming;
-                
-                % Si no se está transmitiendo, reiniciar conexión
-                if isnan(obj.myoObject.myoData.rateEMG)
-                    obj.terminateMyo();
-                    obj.isConnected = false;
-                end
-            catch
-                % En caso de que no haya conexión detectada.
-                try
-                    % Nueva conexión
-                    obj.myoObject = MyoMex();
-                    obj.myoObject.myoData.startStreaming();
-                    disp('Conexión con MYO exitosa.');
-                catch
-                    % No se pudo conectar
-                    obj.isConnected = false;
-                    warning('No se pudo conectar al dispositivo Myo.');
-                end
-            end
-        end
+        
 
         %% Leer datos EMG
         function emg = readEmg(obj)
             % Retorna las señales EMG
-            if obj.isConnected
+            if obj.myoObject.myoData.isStreaming
                 emg = obj.myoObject.myoData.emg_log; % Recupera los datos EMG
                 obj.myoObject.myoData.clearLogs(); % Limpia los datos después de leerlos
             else
@@ -102,26 +75,20 @@ classdef Myo < handle
             data = emg;
         end
 
-        %% Terminar la conexión con Myo
-        function terminateMyo(obj)
-            obj.isConnected = false;
-
-            try
-                % Detener streaming y eliminar objeto Myo
-                obj.myoObject.myoData.stopStreaming();
-                pause(0.1);  % Dar un pequeño tiempo para la finalización
-                obj.myoObject.delete;
-                obj.isConnected = false;
-            catch me
-                disp(me.message);
-                try
-                    % Intentar detener el streaming si hubo un error
-                    obj.myoObject.myoData.stopStreaming();
-                    obj.myoObject.delete;
-                catch me
-                    disp(me.message);
+        %% Obtener matriz de rotación
+        function rot = getRotation(obj)
+            % Retorna la matriz de rotación
+            if obj.myoObject.myoData.isStreaming
+                rot = obj.myoObject.myoData.rot; % Recupera la matriz de rotación
+                if isempty(rot)
+                    error('La matriz de rotación está vacía.');
+                else
+                    disp('Matriz de rotación obtenida'); 
                 end
+            else
+                error('Myo no está conectado.');
             end
         end
+        
     end
 end
